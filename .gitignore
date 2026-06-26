@@ -1,0 +1,23 @@
+# dependencies
+node_modules
+
+# frontend build
+dist
+
+# rust / tauri build
+/src-tauri/target
+/src-tauri/gen/schemas
+
+# nix
+.direnv
+result
+result-*
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.log

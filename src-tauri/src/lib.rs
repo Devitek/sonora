@@ -1,0 +1,125 @@
+//! transcript — real-time speech-to-text with pluggable models.
+//!
+//! M0: application shell — translucent always-on-top HUD window, system tray
+//! with show/quit, and the command surface the frontend will drive.
+//! Recording commands are stubs here; real audio lands in M1.
+
+mod events;
+
+use events::BackendEvent;
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Manager,
+};
+
+/// Liveness probe used by the frontend on mount to confirm the IPC bridge.
+#[tauri::command]
+fn app_ready() -> String {
+    format!("transcript v{}", env!("CARGO_PKG_VERSION"))
+}
+
+/// Start a dictation session. M0 stub: just flips UI state to "listening".
+#[tauri::command]
+fn start_recording(app: AppHandle) -> Result<(), String> {
+    BackendEvent::State { state: "listening" }.emit(&app);
+    Ok(())
+}
+
+/// Stop the current dictation session.
+#[tauri::command]
+fn stop_recording(app: AppHandle) -> Result<(), String> {
+    BackendEvent::State { state: "idle" }.emit(&app);
+    Ok(())
+}
+
+/// Hide the HUD window (app keeps running in the tray).
+#[tauri::command]
+fn hide_window(app: AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.hide();
+    }
+}
+
+fn show_window(app: &AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+}
+
+fn toggle_window(app: &AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        if win.is_visible().unwrap_or(false) {
+            let _ = win.hide();
+        } else {
+            show_window(app);
+        }
+    }
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_store::Builder::new().build());
+
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
+    }
+
+    builder
+        .setup(|app| {
+            setup_tray(app.handle())?;
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Closing the window only hides it — quit happens from the tray.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                api.prevent_close();
+            }
+        })
+        .invoke_handler(tauri::generate_handler![
+            app_ready,
+            start_recording,
+            stop_recording,
+            hide_window
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running transcript");
+}
+
+fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
+    let show_i = MenuItem::with_id(app, "show", "Afficher", true, None::<&str>)?;
+    let quit_i = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
+
+    TrayIconBuilder::with_id("main")
+        .icon(icon)
+        .icon_as_template(true)
+        .tooltip("transcript")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show" => show_window(app),
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                toggle_window(tray.app_handle());
+            }
+        })
+        .build(app)?;
+
+    Ok(())
+}
