@@ -4,13 +4,15 @@
 //! with show/quit, and the command surface the frontend will drive.
 //! Recording commands are stubs here; real audio lands in M1.
 
+mod audio;
 mod events;
 
+use audio::AudioController;
 use events::BackendEvent;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager,
+    AppHandle, Manager, State,
 };
 
 /// Liveness probe used by the frontend on mount to confirm the IPC bridge.
@@ -19,16 +21,17 @@ fn app_ready() -> String {
     format!("transcript v{}", env!("CARGO_PKG_VERSION"))
 }
 
-/// Start a dictation session. M0 stub: just flips UI state to "listening".
+/// Start a dictation session: opens the mic, resamples to 16 kHz and runs VAD.
+/// Emits `state: listening` once the stream is live (or `error` on failure).
 #[tauri::command]
-fn start_recording(app: AppHandle) -> Result<(), String> {
-    BackendEvent::State { state: "listening" }.emit(&app);
-    Ok(())
+fn start_recording(app: AppHandle, audio: State<'_, AudioController>) -> Result<(), String> {
+    audio.start(app)
 }
 
-/// Stop the current dictation session.
+/// Stop the current dictation session and release the microphone.
 #[tauri::command]
-fn stop_recording(app: AppHandle) -> Result<(), String> {
+fn stop_recording(app: AppHandle, audio: State<'_, AudioController>) -> Result<(), String> {
+    audio.stop();
     BackendEvent::State { state: "idle" }.emit(&app);
     Ok(())
 }
@@ -70,6 +73,7 @@ pub fn run() {
     }
 
     builder
+        .manage(AudioController::default())
         .setup(|app| {
             setup_tray(app.handle())?;
             Ok(())

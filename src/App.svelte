@@ -97,7 +97,7 @@
 
   <footer class="actions">
     <div class="meter" aria-hidden="true">
-      <span class="meter-fill" style={`width:${Math.min(100, Math.round(level * 140))}%`}></span>
+      <span class="meter-fill" style={`width:${Math.min(100, Math.round(level * 100))}%`}></span>
     </div>
     <button class="ghost" onclick={clearAll} disabled={!fullText} title="Effacer">⌫</button>
     <button class="mic" class:on={listening} onclick={toggle} title="Démarrer / arrêter">
