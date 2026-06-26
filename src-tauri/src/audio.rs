@@ -244,7 +244,8 @@ fn worker_loop(
     if let Some(mut p) = pipeline {
         p.finish();
     }
-    BackendEvent::State { state: "idle" }.emit(&app);
+    // Note: the "idle" state is emitted by the provider session once it has
+    // fully finalized (so the UI saves the complete transcript to history).
 }
 
 /// Streaming linear resampler (in_rate -> 16 kHz), carrying state across chunks.

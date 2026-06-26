@@ -1,7 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke, listen } from "./lib/tauri";
-  import { EVENT_CHANNEL, type BackendEvent, type RecordingState } from "./lib/types";
+  import { copyText } from "./lib/clipboard";
+  import { loadHistory, saveHistory, newEntry } from "./lib/history";
+  import {
+    EVENT_CHANNEL,
+    type BackendEvent,
+    type RecordingState,
+    type HistoryEntry,
+  } from "./lib/types";
 
   let recState = $state<RecordingState>("idle");
   let partial = $state("");
@@ -9,24 +16,34 @@
   let level = $state(0);
   let errorMsg = $state("");
 
+  let history = $state<HistoryEntry[]>([]);
+  let showHistory = $state(false);
+  let copied = $state(false);
+  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
   const listening = $derived(recState === "listening" || recState === "starting");
+  const finalsText = $derived(finals.join(" ").trim());
   const fullText = $derived([...finals, partial].filter(Boolean).join(" ").trim());
 
   onMount(() => {
     void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
+    void loadHistory().then((h) => (history = h));
 
     const unlisten = listen<BackendEvent>(EVENT_CHANNEL, (ev) => {
       switch (ev.kind) {
         case "state":
           recState = ev.state;
-          if (ev.state !== "error") errorMsg = "";
+          if (ev.state === "idle") void finalizeSession();
           break;
         case "partial":
           partial = ev.text;
           break;
         case "final":
-          if (ev.text.trim()) finals = [...finals, ev.text.trim()];
-          partial = "";
+          if (ev.text.trim()) {
+            finals = [...finals, ev.text.trim()];
+            partial = "";
+            void autoCopy();
+          }
           break;
         case "level":
           level = ev.rms;
@@ -34,6 +51,7 @@
         case "error":
           errorMsg = ev.message;
           recState = "error";
+          void invoke("stop_recording"); // release mic + session on failure
           break;
       }
     });
@@ -43,15 +61,44 @@
     };
   });
 
+  function flashCopied() {
+    copied = true;
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => (copied = false), 1200);
+  }
+
+  async function autoCopy() {
+    if (!finalsText) return;
+    await copyText(finalsText);
+    flashCopied();
+  }
+
+  async function copyCurrent() {
+    if (!fullText) return;
+    await copyText(fullText);
+    flashCopied();
+  }
+
+  /** Persist the just-finished session (called when the backend goes idle). */
+  async function finalizeSession() {
+    const text = finalsText;
+    if (!text) return;
+    history = [newEntry(text), ...history];
+    await saveHistory(history);
+  }
+
   async function toggle() {
     if (listening) {
       await invoke("stop_recording");
-      recState = "idle";
+      recState = "idle"; // optimistic; backend confirms after finalize
     } else {
+      // new session: clear the canvas (previous text is already in history)
+      errorMsg = "";
+      finals = [];
+      partial = "";
       recState = "starting";
       try {
         await invoke("start_recording");
-        // backend will emit "state: listening" once the stream is live
       } catch (e) {
         recState = "error";
         errorMsg = String(e);
@@ -62,6 +109,30 @@
   function clearAll() {
     finals = [];
     partial = "";
+  }
+
+  async function copyEntry(entry: HistoryEntry) {
+    await copyText(entry.text);
+    flashCopied();
+  }
+
+  async function deleteEntry(id: string) {
+    history = history.filter((e) => e.id !== id);
+    await saveHistory(history);
+  }
+
+  async function clearHistory() {
+    history = [];
+    await saveHistory(history);
+  }
+
+  function fmtTime(ts: number): string {
+    return new Date(ts).toLocaleString(undefined, {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   async function hideWindow() {
@@ -76,29 +147,65 @@
       transcript
     </div>
     <div class="win-controls">
+      <button
+        class="icon"
+        class:active={showHistory}
+        title="Historique"
+        onclick={() => (showHistory = !showHistory)}>≣</button
+      >
       <button class="icon" title="Masquer (reste dans le tray)" onclick={hideWindow}>—</button>
     </div>
   </header>
 
-  <section class="body">
-    {#if errorMsg}
-      <p class="error">{errorMsg}</p>
-    {/if}
-    {#if fullText}
-      <p class="transcript">
-        {#each finals as f}<span class="final">{f} </span>{/each}<span class="partial">{partial}</span>
-      </p>
-    {:else}
-      <p class="placeholder">
-        {recState === "idle" ? "Prêt. Appuie sur le micro pour dicter." : "À l'écoute…"}
-      </p>
-    {/if}
-  </section>
+  {#if showHistory}
+    <section class="body history">
+      {#if history.length === 0}
+        <p class="placeholder">Aucun historique pour l'instant.</p>
+      {:else}
+        <div class="history-head">
+          <span>{history.length} entrée{history.length > 1 ? "s" : ""}</span>
+          <button class="link" onclick={clearHistory}>Tout effacer</button>
+        </div>
+        <ul class="history-list">
+          {#each history as entry (entry.id)}
+            <li class="history-item">
+              <button class="entry-text" title="Copier" onclick={() => copyEntry(entry)}>
+                <span class="entry-time">{fmtTime(entry.createdAt)}</span>
+                <span class="entry-body">{entry.text}</span>
+              </button>
+              <button class="entry-del" title="Supprimer" onclick={() => deleteEntry(entry.id)}
+                >✕</button
+              >
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {:else}
+    <section class="body">
+      {#if errorMsg}
+        <p class="error">{errorMsg}</p>
+      {/if}
+      {#if fullText}
+        <p class="transcript">
+          {#each finals as f}<span class="final">{f} </span>{/each}<span class="partial"
+            >{partial}</span
+          >
+        </p>
+      {:else}
+        <p class="placeholder">
+          {recState === "idle" ? "Prêt. Appuie sur le micro pour dicter." : "À l'écoute…"}
+        </p>
+      {/if}
+    </section>
+  {/if}
 
   <footer class="actions">
     <div class="meter" aria-hidden="true">
       <span class="meter-fill" style={`width:${Math.min(100, Math.round(level * 100))}%`}></span>
     </div>
+    {#if copied}<span class="copied">copié ✓</span>{/if}
+    <button class="ghost" onclick={copyCurrent} disabled={!fullText} title="Copier">⧉</button>
     <button class="ghost" onclick={clearAll} disabled={!fullText} title="Effacer">⌫</button>
     <button class="mic" class:on={listening} onclick={toggle} title="Démarrer / arrêter">
       {listening ? "■" : "●"}
@@ -152,13 +259,18 @@
     background: var(--danger);
     box-shadow: 0 0 8px var(--danger);
   }
+  .win-controls {
+    display: flex;
+    gap: 4px;
+  }
   .win-controls .icon {
     width: 26px;
     height: 26px;
     border-radius: 7px;
     color: var(--fg-dim);
   }
-  .win-controls .icon:hover {
+  .win-controls .icon:hover,
+  .win-controls .icon.active {
     background: var(--panel);
     color: var(--fg);
   }
@@ -187,6 +299,71 @@
     margin-bottom: 6px;
   }
 
+  /* history */
+  .history-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--fg-dim);
+    margin-bottom: 6px;
+  }
+  .link {
+    color: var(--fg-dim);
+    font-size: 12px;
+  }
+  .link:hover {
+    color: var(--danger);
+  }
+  .history-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .history-item {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .entry-text {
+    flex: 1;
+    text-align: left;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 7px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .entry-text:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+  .entry-time {
+    font-size: 10px;
+    color: var(--fg-dim);
+  }
+  .entry-body {
+    color: var(--fg);
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .entry-del {
+    width: 28px;
+    border-radius: 8px;
+    color: var(--fg-dim);
+    background: var(--panel);
+  }
+  .entry-del:hover {
+    color: var(--danger);
+  }
+
   .actions {
     display: flex;
     align-items: center;
@@ -206,6 +383,11 @@
     height: 100%;
     background: var(--accent);
     transition: width 0.08s linear;
+  }
+  .copied {
+    font-size: 11px;
+    color: var(--ok);
+    white-space: nowrap;
   }
   .ghost {
     width: 34px;
@@ -230,7 +412,9 @@
     font-size: 16px;
     display: grid;
     place-items: center;
-    transition: transform 0.1s ease, background 0.2s ease;
+    transition:
+      transform 0.1s ease,
+      background 0.2s ease;
   }
   .mic:hover {
     transform: scale(1.05);

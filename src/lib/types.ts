@@ -11,6 +11,13 @@ export interface TranscriptSegment {
   createdAt: number;
 }
 
+/** One saved dictation session in the history. */
+export interface HistoryEntry {
+  id: string;
+  text: string;
+  createdAt: number;
+}
+
 /** Events emitted by the Rust backend over the Tauri event bus. */
 export type BackendEvent =
   | { kind: "state"; state: RecordingState }

@@ -147,6 +147,9 @@ pub async fn run_session(
         BackendEvent::Final { text: leftover }.emit(&app);
     }
     let _ = write.send(Message::Close(None)).await;
+
+    // Session fully finalized — tell the UI it can persist the transcript.
+    BackendEvent::State { state: "idle" }.emit(&app);
 }
 
 /// Parse one server message. Returns `true` when this message was

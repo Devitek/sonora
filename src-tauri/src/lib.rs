@@ -9,7 +9,6 @@ mod events;
 mod providers;
 
 use audio::AudioController;
-use events::BackendEvent;
 use providers::{ProviderConfig, SessionController};
 use tauri::{
     menu::{Menu, MenuItem},
@@ -40,15 +39,14 @@ fn start_recording(
 /// Stop the current dictation session and release the microphone.
 #[tauri::command]
 fn stop_recording(
-    app: AppHandle,
     audio: State<'_, AudioController>,
     session: State<'_, SessionController>,
 ) -> Result<(), String> {
     // Stopping the mic flushes the pipeline, which sends EOS to the session;
-    // stop() is an idempotent safety net.
+    // stop() is an idempotent safety net. The session emits `state: idle` once
+    // it has drained and finalized the transcript.
     audio.stop();
     session.stop();
-    BackendEvent::State { state: "idle" }.emit(&app);
     Ok(())
 }
 
