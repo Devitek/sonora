@@ -6,9 +6,11 @@
 
 mod audio;
 mod events;
+mod providers;
 
 use audio::AudioController;
 use events::BackendEvent;
+use providers::{ProviderConfig, SessionController};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -21,17 +23,31 @@ fn app_ready() -> String {
     format!("transcript v{}", env!("CARGO_PKG_VERSION"))
 }
 
-/// Start a dictation session: opens the mic, resamples to 16 kHz and runs VAD.
-/// Emits `state: listening` once the stream is live (or `error` on failure).
+/// Start a dictation session: spin up the provider stream, then open the mic
+/// (16 kHz mono) and feed it. Emits `state: listening` once live, `error` on
+/// failure (e.g. missing API key).
 #[tauri::command]
-fn start_recording(app: AppHandle, audio: State<'_, AudioController>) -> Result<(), String> {
-    audio.start(app)
+fn start_recording(
+    app: AppHandle,
+    audio: State<'_, AudioController>,
+    session: State<'_, SessionController>,
+) -> Result<(), String> {
+    let cfg = ProviderConfig::from_env()?;
+    let sink = session.start(app.clone(), cfg)?;
+    audio.start(app, Some(sink))
 }
 
 /// Stop the current dictation session and release the microphone.
 #[tauri::command]
-fn stop_recording(app: AppHandle, audio: State<'_, AudioController>) -> Result<(), String> {
+fn stop_recording(
+    app: AppHandle,
+    audio: State<'_, AudioController>,
+    session: State<'_, SessionController>,
+) -> Result<(), String> {
+    // Stopping the mic flushes the pipeline, which sends EOS to the session;
+    // stop() is an idempotent safety net.
     audio.stop();
+    session.stop();
     BackendEvent::State { state: "idle" }.emit(&app);
     Ok(())
 }
@@ -74,6 +90,7 @@ pub fn run() {
 
     builder
         .manage(AudioController::default())
+        .manage(SessionController::default())
         .setup(|app| {
             setup_tray(app.handle())?;
             Ok(())

@@ -22,6 +22,7 @@ use cpal::{Device, FromSample, Sample, SampleFormat, SizedSample, StreamConfig};
 use tauri::AppHandle;
 
 use crate::events::BackendEvent;
+use crate::providers::SessionSink;
 
 /// Target sample rate fed to every transcription backend.
 pub const TARGET_RATE: u32 = 16_000;
@@ -51,8 +52,9 @@ struct Running {
 }
 
 impl AudioController {
-    /// Start capturing. Idempotent: a no-op if already running.
-    pub fn start(&self, app: AppHandle) -> Result<(), String> {
+    /// Start capturing, forwarding 16 kHz mono PCM to `sink` (the provider
+    /// session) when present. Idempotent: a no-op if already running.
+    pub fn start(&self, app: AppHandle, sink: Option<SessionSink>) -> Result<(), String> {
         let mut guard = self.inner.lock().unwrap();
         if guard.is_some() {
             return Ok(());
@@ -69,7 +71,7 @@ impl AudioController {
         let worker = {
             let running = running.clone();
             let app = app.clone();
-            thread::spawn(move || worker_loop(rx, running, app))
+            thread::spawn(move || worker_loop(rx, running, app, sink))
         };
 
         *guard = Some(Running {
@@ -214,12 +216,17 @@ where
     let _ = tx.send(Msg::Data(mono));
 }
 
-fn worker_loop(rx: Receiver<Msg>, running: Arc<AtomicBool>, app: AppHandle) {
+fn worker_loop(
+    rx: Receiver<Msg>,
+    running: Arc<AtomicBool>,
+    app: AppHandle,
+    sink: Option<SessionSink>,
+) {
     let mut pipeline: Option<Pipeline> = None;
     loop {
         match rx.recv_timeout(Duration::from_millis(100)) {
             Ok(Msg::Config { in_rate }) => {
-                pipeline = Some(Pipeline::new(app.clone(), in_rate));
+                pipeline = Some(Pipeline::new(app.clone(), in_rate, sink.clone()));
             }
             Ok(Msg::Data(mono)) => {
                 if let Some(p) = pipeline.as_mut() {
@@ -276,6 +283,7 @@ impl LinearResampler {
 
 struct Pipeline {
     app: AppHandle,
+    sink: Option<SessionSink>,
     resampler: LinearResampler,
     acc: Vec<f32>,
     noise_floor: f32,
@@ -288,9 +296,10 @@ struct Pipeline {
 }
 
 impl Pipeline {
-    fn new(app: AppHandle, in_rate: u32) -> Self {
+    fn new(app: AppHandle, in_rate: u32, sink: Option<SessionSink>) -> Self {
         Self {
             app,
+            sink,
             resampler: LinearResampler::new(in_rate),
             acc: Vec::with_capacity(FRAME_SIZE * 2),
             noise_floor: ABS_THRESHOLD,
@@ -308,6 +317,17 @@ impl Pipeline {
         self.resampler.process(mono, &mut self.resampled);
         // borrow-safe: move out the freshly resampled samples
         let chunk = std::mem::take(&mut self.resampled);
+
+        // Stream the full 16 kHz mono signal to the provider (it does its own
+        // endpointing); our VAD below only drives the meter / segment logs.
+        if let Some(sink) = &self.sink {
+            let pcm: Vec<i16> = chunk
+                .iter()
+                .map(|s| (s.clamp(-1.0, 1.0) * 32767.0) as i16)
+                .collect();
+            sink.push(&pcm);
+        }
+
         self.acc.extend_from_slice(&chunk);
         self.resampled = chunk;
 
@@ -367,6 +387,9 @@ impl Pipeline {
         if self.in_speech && self.seg_samples > 0 {
             let ms = self.seg_samples as f32 / TARGET_RATE as f32 * 1000.0;
             eprintln!("[transcript:audio] segment final: {ms:.0} ms");
+        }
+        if let Some(sink) = &self.sink {
+            sink.eos();
         }
         BackendEvent::Level { rms: 0.0 }.emit(&self.app);
     }

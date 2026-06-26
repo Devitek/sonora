@@ -68,6 +68,11 @@
             # WebKitGTK on Wayland/Nvidia can need software compositing.
             export WEBKIT_DISABLE_COMPOSITING_MODE=1
             export GIO_MODULE_DIR="${pkgs.glib-networking}/lib/gio/modules"
+            # Load provider credentials (GEMINI_API_KEY, ...) from a local .env
+            if [ -f .env ]; then
+              set -a; . ./.env; set +a
+              echo "loaded .env"
+            fi
             echo "transcript devshell ready — run: bun install && bun run tauri dev"
           '';
         };
