@@ -27,3 +27,10 @@ export type BackendEvent =
   | { kind: "error"; message: string };
 
 export const EVENT_CHANNEL = "transcript://event";
+
+/** Control actions pushed from the backend (global hotkey / CLI / tray). */
+export type ControlAction = "toggle" | "start" | "stop" | "show";
+export interface ControlEvent {
+  action: ControlAction;
+}
+export const CONTROL_CHANNEL = "transcript://control";

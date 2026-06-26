@@ -5,7 +5,10 @@
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
   import {
     EVENT_CHANNEL,
+    CONTROL_CHANNEL,
     type BackendEvent,
+    type ControlEvent,
+    type ControlAction,
     type RecordingState,
     type HistoryEntry,
   } from "./lib/types";
@@ -29,7 +32,7 @@
     void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
     void loadHistory().then((h) => (history = h));
 
-    const unlisten = listen<BackendEvent>(EVENT_CHANNEL, (ev) => {
+    const unlistenEvents = listen<BackendEvent>(EVENT_CHANNEL, (ev) => {
       switch (ev.kind) {
         case "state":
           recState = ev.state;
@@ -56,10 +59,37 @@
       }
     });
 
+    // Global hotkey / CLI / tray actions routed through the backend.
+    const unlistenControl = listen<ControlEvent>(CONTROL_CHANNEL, (ev) =>
+      handleControl(ev.action),
+    );
+
+    // Replay a first-launch CLI action (e.g. `transcript toggle`).
+    void invoke<string | null>("take_pending_action").then((a) => {
+      if (a) handleControl(a as ControlAction);
+    });
+
     return () => {
-      void unlisten.then((fn) => fn());
+      void unlistenEvents.then((fn) => fn());
+      void unlistenControl.then((fn) => fn());
     };
   });
+
+  function handleControl(action: ControlAction) {
+    switch (action) {
+      case "toggle":
+        void toggle();
+        break;
+      case "start":
+        if (!listening) void toggle();
+        break;
+      case "stop":
+        if (listening) void toggle();
+        break;
+      case "show":
+        break; // backend already surfaced the window
+    }
+  }
 
   function flashCopied() {
     copied = true;

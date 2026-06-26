@@ -1,20 +1,49 @@
 //! transcript — real-time speech-to-text with pluggable models.
-//!
-//! M0: application shell — translucent always-on-top HUD window, system tray
-//! with show/quit, and the command surface the frontend will drive.
-//! Recording commands are stubs here; real audio lands in M1.
 
 mod audio;
 mod events;
 mod providers;
+
+use std::sync::Mutex;
 
 use audio::AudioController;
 use providers::{ProviderConfig, SessionController};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, State,
+    AppHandle, Emitter, Manager, State,
 };
+
+/// Control channel: backend-initiated actions (global hotkey / CLI / tray)
+/// that the frontend turns into the same start/stop flow as the mic button.
+const CONTROL_CHANNEL: &str = "transcript://control";
+
+/// A CLI action carried over from first launch until the webview is ready.
+#[derive(Default)]
+struct PendingAction(Mutex<Option<String>>);
+
+/// Map CLI args to a control action: `transcript toggle|start|stop|show`.
+fn parse_action(args: &[String]) -> Option<&'static str> {
+    args.iter().find_map(|a| match a.as_str() {
+        "toggle" => Some("toggle"),
+        "start" => Some("start"),
+        "stop" => Some("stop"),
+        "show" => Some("show"),
+        _ => None,
+    })
+}
+
+/// Surface the HUD and forward an action to the frontend.
+fn dispatch_action(app: &AppHandle, action: &str) {
+    show_window(app);
+    let _ = app.emit(CONTROL_CHANNEL, serde_json::json!({ "action": action }));
+}
+
+/// Consumed by the frontend on mount to replay a first-launch CLI action.
+#[tauri::command]
+fn take_pending_action(state: State<'_, PendingAction>) -> Option<String> {
+    state.0.lock().unwrap().take()
+}
 
 /// Liveness probe used by the frontend on mount to confirm the IPC bridge.
 #[tauri::command]
@@ -77,7 +106,22 @@ fn toggle_window(app: &AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+
+    // single-instance MUST be the first plugin: a second launch (e.g. the
+    // Hyprland keybind running `transcript toggle`) forwards its argv here.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            let args: Vec<String> = argv.into_iter().skip(1).collect();
+            match parse_action(&args) {
+                Some(action) => dispatch_action(app, action),
+                None => show_window(app),
+            }
+        }));
+    }
+
+    builder = builder
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_store::Builder::new().build());
 
@@ -89,8 +133,16 @@ pub fn run() {
     builder
         .manage(AudioController::default())
         .manage(SessionController::default())
+        .manage(PendingAction::default())
         .setup(|app| {
             setup_tray(app.handle())?;
+            register_global_shortcut(app.handle());
+
+            // Stash a first-launch CLI action for the frontend to replay.
+            let args: Vec<String> = std::env::args().skip(1).collect();
+            if let Some(action) = parse_action(&args) {
+                *app.state::<PendingAction>().0.lock().unwrap() = Some(action.to_string());
+            }
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -104,16 +156,42 @@ pub fn run() {
             app_ready,
             start_recording,
             stop_recording,
-            hide_window
+            hide_window,
+            take_pending_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running transcript");
 }
 
+/// Register a desktop global shortcut (Ctrl+Shift+Space) to toggle dictation.
+/// On Wayland global capture is unavailable — prefer a Hyprland keybind running
+/// `transcript toggle` (handled via the single-instance plugin). Failures here
+/// are expected on Wayland and only logged.
+#[cfg(desktop)]
+fn register_global_shortcut(app: &AppHandle) {
+    use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
+    let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space);
+    let res = app
+        .global_shortcut()
+        .on_shortcut(shortcut, |app, _shortcut, event| {
+            if event.state() == ShortcutState::Pressed {
+                dispatch_action(app, "toggle");
+            }
+        });
+    if let Err(e) = res {
+        eprintln!("[transcript] raccourci global indisponible (normal sous Wayland): {e}");
+    }
+}
+
+#[cfg(not(desktop))]
+fn register_global_shortcut(_app: &AppHandle) {}
+
 fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
+    let toggle_i = MenuItem::with_id(app, "toggle", "Démarrer / arrêter la dictée", true, None::<&str>)?;
     let show_i = MenuItem::with_id(app, "show", "Afficher", true, None::<&str>)?;
     let quit_i = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+    let menu = Menu::with_items(app, &[&toggle_i, &show_i, &quit_i])?;
 
     let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
 
@@ -124,6 +202,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
+            "toggle" => dispatch_action(app, "toggle"),
             "show" => show_window(app),
             "quit" => app.exit(0),
             _ => {}
