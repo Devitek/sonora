@@ -61,10 +61,10 @@
     display: block;
     width: 100%;
     text-align: left;
-    padding: 8px 28px 8px 10px;
+    padding: 9px 28px 9px 11px;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--fg);
     font-size: 13px;
   }
@@ -73,7 +73,7 @@
   }
   .caret {
     position: absolute;
-    right: 10px;
+    right: 11px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--fg-dim);
@@ -83,19 +83,20 @@
     list-style: none;
     margin: 6px 0 0;
     padding: 4px;
-    background: #1b1e29;
+    background: var(--panel-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    box-shadow: var(--dd-shadow);
   }
   .opt {
     display: block;
     width: 100%;
     text-align: left;
     padding: 7px 9px;
-    border-radius: 6px;
+    border-radius: 7px;
     color: var(--fg);
     font-size: 13px;
   }

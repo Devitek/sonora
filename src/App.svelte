@@ -3,7 +3,13 @@
   import { invoke, listen } from "./lib/tauri";
   import { copyText } from "./lib/clipboard";
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
-  import { getAutoType, setAutoType } from "./lib/settings";
+  import {
+    getAutoType,
+    setAutoType,
+    getTheme,
+    setTheme,
+    type ThemePref,
+  } from "./lib/settings";
   import Select from "./lib/Select.svelte";
   import {
     EVENT_CHANNEL,
@@ -23,12 +29,14 @@
   let errorMsg = $state("");
 
   let history = $state<HistoryEntry[]>([]);
-  let showHistory = $state(false);
   let copied = $state(false);
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
   let autoType = $state(false);
 
-  let showSettings = $state(false);
+  // Options dropdown
+  let menuOpen = $state(false);
+  let menuTab = $state<"history" | "settings">("history");
+
   let settings = $state<Settings>({ provider: "gemini" });
   let apiKey = $state("");
   let hasKey = $state(false);
@@ -38,6 +46,16 @@
   let cleaning = $state(false);
   let cleanupKey = $state("");
   let hasCleanupKey = $state(false);
+
+  // Theme
+  let theme = $state<ThemePref>("system");
+  let systemDark = $state(true);
+  const effectiveTheme = $derived(
+    theme === "system" ? (systemDark ? "dark" : "light") : theme,
+  );
+  $effect(() => {
+    document.documentElement.setAttribute("data-theme", effectiveTheme);
+  });
 
   const PROVIDERS = [
     { id: "gemini", label: "Gemini Live (streaming)" },
@@ -75,12 +93,20 @@
   const listening = $derived(recState === "listening" || recState === "starting");
   const finalsText = $derived(finals.join(" ").trim());
   const fullText = $derived([...finals, partial].filter(Boolean).join(" ").trim());
+  const hasText = $derived(fullText.length > 0);
 
   onMount(() => {
     void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
     void loadHistory().then((h) => (history = h));
     void getAutoType().then((v) => (autoType = v));
+    void getTheme().then((v) => (theme = v));
+    void loadSettings();
     void refreshConfigured();
+
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    systemDark = mq.matches;
+    const onMq = (e: MediaQueryListEvent) => (systemDark = e.matches);
+    mq.addEventListener("change", onMq);
 
     const unlistenEvents = listen<BackendEvent>(EVENT_CHANNEL, (ev) => {
       switch (ev.kind) {
@@ -130,6 +156,7 @@
     });
 
     return () => {
+      mq.removeEventListener("change", onMq);
       void unlistenEvents.then((fn) => fn());
       void unlistenControl.then((fn) => fn());
     };
@@ -225,6 +252,7 @@
       errorMsg = "";
       finals = [];
       partial = "";
+      menuOpen = false;
       recState = "starting";
       try {
         await invoke("start_recording");
@@ -232,13 +260,6 @@
         recState = "error";
         errorMsg = String(e);
       }
-    }
-  }
-
-  function onMicKey(e: KeyboardEvent) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      void toggle();
     }
   }
 
@@ -250,6 +271,18 @@
   async function toggleAutoType() {
     autoType = !autoType;
     await setAutoType(autoType);
+  }
+
+  async function toggleCleanup() {
+    settings.cleanup_enabled = !settings.cleanup_enabled;
+    await invoke("save_settings", { settings: $state.snapshot(settings) }).catch(
+      (e) => (errorMsg = String(e)),
+    );
+  }
+
+  async function chooseTheme(v: ThemePref) {
+    theme = v;
+    await setTheme(v);
   }
 
   async function loadSettings() {
@@ -272,10 +305,20 @@
     configured = await invoke<boolean>("is_configured");
   }
 
+  function toggleMenu() {
+    menuOpen = !menuOpen;
+    if (menuOpen) void loadSettings();
+  }
+
   function openSettings() {
-    showHistory = false;
-    showSettings = true;
+    menuOpen = true;
+    menuTab = "settings";
     void loadSettings();
+  }
+
+  function openHistory() {
+    menuOpen = true;
+    menuTab = "history";
   }
 
   async function saveSettings() {
@@ -329,375 +372,388 @@
   async function hideWindow() {
     await invoke("hide_window");
   }
+
+  // --- Waveform capsule (driven by the real audio level) -------------------
+  let canvasEl: HTMLCanvasElement | undefined = $state();
+  let raf = 0;
+  let animLevel = 0;
+
+  $effect(() => {
+    if (listening && canvasEl) {
+      if (!raf) raf = requestAnimationFrame(drawLoop);
+    } else {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      animLevel = 0;
+    }
+  });
+
+  function drawLoop() {
+    drawWave();
+    raf = requestAnimationFrame(drawLoop);
+  }
+
+  function drawWave() {
+    const cv = canvasEl;
+    if (!cv) return;
+    const w = cv.clientWidth,
+      h = cv.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+    }
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    // Smooth the RMS toward a lively target (RMS tends to be small).
+    const target = Math.max(0.1, Math.min(1, level * 2.6));
+    animLevel += (target - animLevel) * 0.3;
+
+    const t = performance.now() / 1000;
+    const c1 = "#7c5cff",
+      c2 = "#22d3ee";
+    const n = Math.max(11, Math.floor(w / 11));
+    const mid = h / 2,
+      bw = w / n;
+    ctx.shadowColor = "rgba(124,92,255,0.5)";
+    ctx.shadowBlur = 7;
+    for (let i = 0; i < n; i++) {
+      const osc =
+        0.45 +
+        0.55 *
+          Math.abs(Math.sin(t * 7 + i * 0.55) + 0.4 * Math.sin(t * 4 - i * 0.9));
+      const amp = Math.max(2, animLevel * osc * h * 0.4);
+      const x = i * bw + bw * 0.28,
+        ww = Math.max(2.5, bw * 0.44);
+      const g = ctx.createLinearGradient(0, mid - amp, 0, mid + amp);
+      g.addColorStop(0, c2);
+      g.addColorStop(1, c1);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.roundRect(x, mid - amp, ww, amp * 2, ww / 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
 </script>
 
-<main class="hud" class:listening>
-  <header class="bar" data-tauri-drag-region>
-    <div class="title" data-tauri-drag-region>
-      <span class="dot" class:on={listening} class:err={recState === "error"}></span>
-      transcript
-    </div>
-    <div class="win-controls">
-      <button class="icon" class:active={showSettings} title="Réglages" onclick={openSettings}
-        >⚙</button
-      >
+<main class="surface" data-tauri-drag-region>
+  <div class="anchor">
+    <!-- THE BAR -->
+    <div class="bar" data-tauri-drag-region>
       <button
-        class="icon"
-        class:active={showHistory}
-        title="Historique"
-        onclick={() => {
-          showSettings = false;
-          showHistory = !showHistory;
-        }}>≣</button
+        class="rec"
+        class:on={listening}
+        title={listening ? "Arrêter" : "Dicter"}
+        onclick={toggle}
+        aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
       >
-      <button class="icon" title="Masquer (reste dans le tray)" onclick={hideWindow}>—</button>
-    </div>
-  </header>
-
-  {#if showSettings}
-    <section class="body settings">
-      <div class="field">
-        <span>Fournisseur</span>
-        <Select
-          bind:value={settings.provider}
-          options={PROVIDERS}
-          onChange={() => {
-            apiKey = "";
-            void refreshHasKey();
-          }}
-        />
-      </div>
-
-      {#if needsKey}
-        <label class="field">
-          <span>Clé API {hasKey ? "· enregistrée ✓" : ""}</span>
-          <input
-            type="password"
-            bind:value={apiKey}
-            placeholder={hasKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
-          />
-        </label>
-        {#if provider === "gemini" && apiKey.startsWith("AQ.")}
-          <p class="warn">
-            ⚠ Ceci ressemble à un jeton temporaire (Live) qui expire vite. Utilise une clé
-            API AI Studio (commence par « AIza ») : aistudio.google.com/apikey
-          </p>
-        {/if}
-        {#if hasKey}
-          <button class="link" onclick={clearKey}>Supprimer la clé enregistrée</button>
-        {/if}
-      {/if}
-
-      <label class="field">
-        <span>Modèle (optionnel)</span>
-        <input
-          type="text"
-          bind:value={settings.model}
-          placeholder={MODEL_PLACEHOLDER[provider] || "défaut"}
-        />
-      </label>
-
-      {#if provider === "openai-compatible"}
-        <label class="field">
-          <span>URL de base</span>
-          <input type="text" bind:value={settings.base_url} placeholder="http://localhost:8000/v1" />
-        </label>
-      {/if}
-
-      {#if provider === "whisper-local"}
-        <label class="field">
-          <span>Chemin du modèle ggml</span>
-          <input type="text" bind:value={settings.whisper_model} placeholder="/chemin/ggml-base.bin" />
-        </label>
-      {/if}
-
-      <label class="field">
-        <span>Langue (optionnel)</span>
-        <input type="text" bind:value={settings.language} placeholder="fr · vide = auto" />
-      </label>
-
-      <div class="section-sep">Nettoyage des hésitations</div>
-
-      <label class="field check">
-        <input type="checkbox" bind:checked={settings.cleanup_enabled} />
-        <span>Nettoyer automatiquement (retirer « euh », faux départs…)</span>
-      </label>
-
-      {#if settings.cleanup_enabled}
-        <div class="field">
-          <span>Moteur de nettoyage</span>
-          <Select bind:value={settings.cleanup_provider} options={CLEANUP_ENGINES} />
-        </div>
-        <label class="field">
-          <span>Modèle de nettoyage</span>
-          <input
-            type="text"
-            bind:value={settings.cleanup_model}
-            placeholder={CLEANUP_MODEL_PLACEHOLDER[cleanupProvider] ?? "défaut"}
-          />
-        </label>
-        {#if cleanupProvider === "gemini"}
-          <p class="hint">Utilise la clé Gemini configurée plus haut.</p>
+        {#if listening}
+          <span class="stop"></span>
         {:else}
-          {#if cleanupProvider === "openai-compatible"}
-            <label class="field">
-              <span>URL de base</span>
-              <input
-                type="text"
-                bind:value={settings.cleanup_base_url}
-                placeholder="http://localhost:8000/v1"
-              />
-            </label>
-          {/if}
-          <label class="field">
-            <span>Clé API nettoyage {hasCleanupKey ? "· enregistrée ✓" : ""}</span>
-            <input
-              type="password"
-              bind:value={cleanupKey}
-              placeholder={hasCleanupKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
-            />
-          </label>
-        {/if}
-      {/if}
-
-      <div class="settings-actions">
-        {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
-        <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
-      </div>
-    </section>
-  {:else if showHistory}
-    <section class="body history">
-      {#if history.length === 0}
-        <p class="placeholder">Aucun historique pour l'instant.</p>
-      {:else}
-        <div class="history-head">
-          <span>{history.length} entrée{history.length > 1 ? "s" : ""}</span>
-          <button class="link" onclick={clearHistory}>Tout effacer</button>
-        </div>
-        <ul class="history-list">
-          {#each history as entry (entry.id)}
-            <li class="history-item">
-              <button class="entry-text" title="Copier" onclick={() => copyEntry(entry)}>
-                <span class="entry-time">{fmtTime(entry.createdAt)}</span>
-                <span class="entry-body">{entry.text}</span>
-              </button>
-              <button class="entry-del" title="Supprimer" onclick={() => deleteEntry(entry.id)}
-                >✕</button
-              >
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </section>
-  {:else}
-    <section class="body">
-      {#if errorMsg}
-        <p class="error">{errorMsg}</p>
-      {/if}
-      {#if fullText}
-        <p class="transcript">
-          {#each finals as f}<span class="final">{f} </span>{/each}<span class="partial"
-            >{partial}</span
-          >
-        </p>
-      {:else if !configured}
-        <div class="empty onboarding">
-          <div class="ob-badge">⚙</div>
-          <h2 class="ob-title">Configurez la transcription</h2>
-          <p class="ob-text">
-            Choisissez un fournisseur d'IA — Gemini, Groq, OpenAI ou Whisper local — et
-            saisissez votre clé pour commencer à dicter.
-          </p>
-          <button class="save-btn" onclick={openSettings}>Ouvrir les réglages</button>
-        </div>
-      {:else}
-        <div class="empty">
-          <svg
-            class="big-mic"
-            class:on={listening}
-            role="button"
-            tabindex="0"
-            onclick={toggle}
-            onkeydown={onMicKey}
-            aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
-            width="88"
-            height="88"
-            viewBox="0 0 88 88"
-            style="width:88px;height:88px"
-          >
-            <circle cx="44" cy="44" r="44" fill={listening ? "#ef4444" : "#4f46e5"} />
-            {#if listening}
-              <rect x="31" y="31" width="26" height="26" rx="4" fill="#fff" />
-            {:else}
-              <rect x="37" y="20" width="14" height="28" rx="7" fill="#fff" />
-              <path d="M28 42 a16 16 0 0 0 32 0" fill="none" stroke="#fff" stroke-width="3.5" />
-              <line x1="44" y1="58" x2="44" y2="68" stroke="#fff" stroke-width="3.5" />
-            {/if}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="3" width="6" height="11" rx="3" fill="#fff" />
+            <path d="M6 11a6 6 0 0 0 12 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" />
+            <line x1="12" y1="17" x2="12" y2="21" stroke="#fff" stroke-width="2" stroke-linecap="round" />
           </svg>
-          <p class="placeholder">
-            {recState === "idle" ? "Cliquez le micro pour dicter" : "À l'écoute…"}
-          </p>
-        </div>
-      {/if}
-    </section>
-  {/if}
+        {/if}
+      </button>
 
-  <footer class="actions">
-    <div class="meter" aria-hidden="true">
-      <span class="meter-fill" style={`width:${Math.min(100, Math.round(level * 100))}%`}></span>
-    </div>
-    {#if cleaning}<span class="copied">nettoyage…</span>{:else if copied}<span class="copied"
-        >copié ✓</span
-      >{/if}
-    <button
-      class="ghost"
-      onclick={cleanupNow}
-      disabled={!fullText || cleaning}
-      title="Nettoyer (retirer les hésitations)">✦</button
-    >
-    <button
-      class="ghost"
-      class:active={autoType}
-      onclick={toggleAutoType}
-      title={autoType
-        ? "Saisie auto au curseur : activée"
-        : "Saisie auto au curseur : désactivée"}
-      aria-pressed={autoType}>⌨</button
-    >
-    <button class="ghost" onclick={copyCurrent} disabled={!fullText} title="Copier">⧉</button>
-    <button class="ghost" onclick={clearAll} disabled={!fullText} title="Effacer">⌫</button>
-    <svg
-      class="mic"
-      class:on={listening}
-      role="button"
-      tabindex="0"
-      onclick={toggle}
-      onkeydown={onMicKey}
-      aria-label="Démarrer / arrêter la dictée"
-      width="50"
-      height="50"
-      viewBox="0 0 50 50"
-      style="width:50px;height:50px"
-    >
-      <circle cx="25" cy="25" r="25" fill={listening ? "#ef4444" : "#4f46e5"} />
-      {#if listening}
-        <rect x="17" y="17" width="16" height="16" rx="3" fill="#fff" />
-      {:else}
-        <rect x="21" y="11" width="8" height="16" rx="4" fill="#fff" />
-        <path d="M16 24 a9 9 0 0 0 18 0" fill="none" stroke="#fff" stroke-width="2.5" />
-        <line x1="25" y1="33" x2="25" y2="39" stroke="#fff" stroke-width="2.5" />
+      <span class="divider"></span>
+
+      <div class="bar-text">
+        {#if errorMsg}
+          <span class="err">{errorMsg}</span>
+        {:else if hasText}
+          <p class="transcript">
+            {#each finals as f}<span class="final">{f} </span>{/each}<span class="partial">{partial}</span>
+          </p>
+        {:else if !configured}
+          <span class="ph">Ajoutez une clé API pour démarrer</span>
+        {:else}
+          <span class="ph">{listening ? "À l'écoute…" : "Dictez ou cliquez le micro"}</span>
+        {/if}
+      </div>
+
+      {#if hasText && !listening}
+        <button class="icon-btn" onclick={cleanupNow} disabled={cleaning} title="Nettoyer (retirer les hésitations)">✦</button>
+        <button class="icon-btn" class:ok={copied} onclick={copyCurrent} title="Copier">
+          {#if copied}✓{:else}⧉{/if}
+        </button>
+        <button class="icon-btn" onclick={clearAll} title="Effacer">⌫</button>
       {/if}
-    </svg>
-  </footer>
+
+      <button class="icon-btn menu" class:active={menuOpen} onclick={toggleMenu} title="Options" aria-label="Options">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="4" y1="7" x2="20" y2="7" /><circle cx="15" cy="7" r="2.4" fill="currentColor" stroke="none" />
+          <line x1="4" y1="13" x2="20" y2="13" /><circle cx="9" cy="13" r="2.4" fill="currentColor" stroke="none" />
+          <line x1="4" y1="19" x2="20" y2="19" /><circle cx="16" cy="19" r="2.4" fill="currentColor" stroke="none" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- FLOATING WAVEFORM CAPSULE -->
+    {#if listening}
+      <div class="capsule">
+        <canvas bind:this={canvasEl}></canvas>
+      </div>
+    {/if}
+
+    <!-- OPTIONS DROPDOWN -->
+    {#if menuOpen}
+      <div class="panel">
+        <!-- quick toggles -->
+        <div class="quick">
+          <button class="quick-card" class:on={autoType} onclick={toggleAutoType}>
+            <span class="q-ico">⌨</span>
+            <span class="q-name">Coller au curseur</span>
+            <span class="q-state">{autoType ? "activé" : "désactivé"}</span>
+          </button>
+          <button class="quick-card" class:on={cleanupEnabled} onclick={toggleCleanup}>
+            <span class="q-ico">✦</span>
+            <span class="q-name">Nettoyage auto</span>
+            <span class="q-state">{cleanupEnabled ? "activé" : "désactivé"}</span>
+          </button>
+        </div>
+
+        <!-- tabs -->
+        <div class="tabs">
+          <button class="tab" class:active={menuTab === "history"} onclick={() => (menuTab = "history")}>Historique</button>
+          <button class="tab" class:active={menuTab === "settings"} onclick={() => (menuTab = "settings")}>Réglages</button>
+        </div>
+
+        {#if menuTab === "history"}
+          <div class="tab-body">
+            {#if history.length === 0}
+              <p class="placeholder">Aucune dictée enregistrée.</p>
+            {:else}
+              <div class="history-head">
+                <span>{history.length} entrée{history.length > 1 ? "s" : ""}</span>
+                <button class="link" onclick={clearHistory}>Tout effacer</button>
+              </div>
+              <ul class="history-list">
+                {#each history as entry (entry.id)}
+                  <li class="history-item">
+                    <button class="entry-text" title="Copier" onclick={() => copyEntry(entry)}>
+                      <span class="entry-time">{fmtTime(entry.createdAt)}</span>
+                      <span class="entry-body">{entry.text}</span>
+                    </button>
+                    <button class="entry-del" title="Supprimer" onclick={() => deleteEntry(entry.id)}>✕</button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {:else}
+          <div class="tab-body">
+            <!-- Thème -->
+            <div class="field">
+              <span>Thème</span>
+              <div class="seg">
+                <button class="seg-btn" class:active={theme === "system"} onclick={() => chooseTheme("system")}>Système</button>
+                <button class="seg-btn" class:active={theme === "light"} onclick={() => chooseTheme("light")}>Clair</button>
+                <button class="seg-btn" class:active={theme === "dark"} onclick={() => chooseTheme("dark")}>Sombre</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <span>Fournisseur</span>
+              <Select
+                bind:value={settings.provider}
+                options={PROVIDERS}
+                onChange={() => {
+                  apiKey = "";
+                  void refreshHasKey();
+                }}
+              />
+            </div>
+
+            {#if needsKey}
+              <label class="field">
+                <span>Clé API {hasKey ? "· enregistrée ✓" : ""}</span>
+                <input
+                  type="password"
+                  bind:value={apiKey}
+                  placeholder={hasKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
+                />
+              </label>
+              {#if provider === "gemini" && apiKey.startsWith("AQ.")}
+                <p class="warn">
+                  ⚠ Ceci ressemble à un jeton temporaire (Live) qui expire vite. Utilise une clé
+                  API AI Studio (commence par « AIza ») : aistudio.google.com/apikey
+                </p>
+              {/if}
+              {#if hasKey}
+                <button class="link" onclick={clearKey}>Supprimer la clé enregistrée</button>
+              {/if}
+            {/if}
+
+            <label class="field">
+              <span>Modèle (optionnel)</span>
+              <input type="text" bind:value={settings.model} placeholder={MODEL_PLACEHOLDER[provider] || "défaut"} />
+            </label>
+
+            {#if provider === "openai-compatible"}
+              <label class="field">
+                <span>URL de base</span>
+                <input type="text" bind:value={settings.base_url} placeholder="http://localhost:8000/v1" />
+              </label>
+            {/if}
+
+            {#if provider === "whisper-local"}
+              <label class="field">
+                <span>Chemin du modèle ggml</span>
+                <input type="text" bind:value={settings.whisper_model} placeholder="/chemin/ggml-base.bin" />
+              </label>
+            {/if}
+
+            <label class="field">
+              <span>Langue (optionnel)</span>
+              <input type="text" bind:value={settings.language} placeholder="fr · vide = auto" />
+            </label>
+
+            <div class="section-sep">Nettoyage des hésitations</div>
+
+            <label class="field check">
+              <input type="checkbox" bind:checked={settings.cleanup_enabled} />
+              <span>Nettoyer automatiquement (retirer « euh », faux départs…)</span>
+            </label>
+
+            {#if settings.cleanup_enabled}
+              <div class="field">
+                <span>Moteur de nettoyage</span>
+                <Select bind:value={settings.cleanup_provider} options={CLEANUP_ENGINES} />
+              </div>
+              <label class="field">
+                <span>Modèle de nettoyage</span>
+                <input
+                  type="text"
+                  bind:value={settings.cleanup_model}
+                  placeholder={CLEANUP_MODEL_PLACEHOLDER[cleanupProvider] ?? "défaut"}
+                />
+              </label>
+              {#if cleanupProvider === "gemini"}
+                <p class="hint">Utilise la clé Gemini configurée plus haut.</p>
+              {:else}
+                {#if cleanupProvider === "openai-compatible"}
+                  <label class="field">
+                    <span>URL de base</span>
+                    <input type="text" bind:value={settings.cleanup_base_url} placeholder="http://localhost:8000/v1" />
+                  </label>
+                {/if}
+                <label class="field">
+                  <span>Clé API nettoyage {hasCleanupKey ? "· enregistrée ✓" : ""}</span>
+                  <input
+                    type="password"
+                    bind:value={cleanupKey}
+                    placeholder={hasCleanupKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
+                  />
+                </label>
+              {/if}
+            {/if}
+
+            <div class="settings-actions">
+              {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
+              <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
+            </div>
+
+            <button class="hide-row" onclick={hideWindow}>Masquer la fenêtre (reste dans le tray)</button>
+          </div>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </main>
 
 <style>
-  .hud {
+  .surface {
     height: 100vh;
+    width: 100vw;
+    background: var(--backdrop);
+    padding: 28px 20px;
     display: flex;
-    flex-direction: column;
-    background: var(--bg);
+    justify-content: center;
     overflow: hidden;
-    transition: border-color 0.2s ease;
   }
-  .hud.listening {
-    box-shadow: inset 0 0 0 2px rgba(129, 140, 248, 0.65);
+  .anchor {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    align-self: flex-start;
   }
 
+  /* ---- bar ---- */
   .bar {
+    position: relative;
+    z-index: 5;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 10px;
-    -webkit-app-region: drag;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 18px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    box-shadow: var(--surface-shadow);
+    backdrop-filter: blur(20px);
   }
-  .title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    color: var(--fg);
-  }
-  .dot {
-    width: 8px;
-    height: 8px;
+  .rec {
+    flex: none;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
-    background: var(--fg-dim);
-    transition: background 0.2s ease;
-  }
-  .dot.on {
-    background: var(--ok);
-    box-shadow: 0 0 8px var(--ok);
-  }
-  .dot.err {
-    background: var(--danger);
-    box-shadow: 0 0 8px var(--danger);
-  }
-  .win-controls {
     display: flex;
-    gap: 4px;
-  }
-  .win-controls .icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    color: var(--fg-dim);
-  }
-  .win-controls .icon:hover,
-  .win-controls .icon.active {
-    background: var(--panel);
-    color: var(--fg);
-  }
-
-  .body {
-    flex: 1;
-    padding: 8px 16px 12px;
-    overflow-y: auto;
-    line-height: 1.55;
-    display: flex;
-    flex-direction: column;
-  }
-  .placeholder {
-    color: var(--fg-dim);
-    text-align: center;
-    font-size: 14px;
-    max-width: 28ch;
-  }
-  .empty {
-    margin: auto;
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 16px;
-  }
-  .big-mic {
-    display: block;
-    cursor: pointer;
-    border-radius: 50%;
-    box-shadow: 0 10px 28px rgba(79, 70, 229, 0.5);
+    justify-content: center;
+    background: linear-gradient(140deg, var(--accent), #6d5cff);
+    box-shadow: 0 8px 22px rgba(124, 92, 255, 0.42);
     transition: transform 0.12s ease;
   }
-  .big-mic:hover {
-    transform: scale(1.06);
+  .rec:hover {
+    transform: scale(1.05);
   }
-  .big-mic.on {
-    box-shadow: 0 8px 26px rgba(248, 113, 113, 0.55);
-    /* transform/opacity animation is GPU-composited — avoids the box-shadow
-       repaint flicker seen on XWayland. */
-    animation: pulse 1.4s ease-in-out infinite;
+  .rec.on {
+    background: linear-gradient(140deg, #ef5da8, #7c5cff);
+    box-shadow: 0 0 0 5px rgba(124, 92, 255, 0.16), 0 8px 24px rgba(239, 93, 168, 0.4);
+    animation: pulse 1.5s ease-in-out infinite;
   }
   @keyframes pulse {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.06);
-    }
+    0%, 100% { box-shadow: 0 0 0 5px rgba(124, 92, 255, 0.16), 0 8px 24px rgba(239, 93, 168, 0.4); }
+    50% { box-shadow: 0 0 0 9px rgba(124, 92, 255, 0.08), 0 8px 28px rgba(239, 93, 168, 0.5); }
+  }
+  .stop {
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .divider {
+    flex: none;
+    width: 1px;
+    height: 24px;
+    background: var(--divider);
+  }
+  .bar-text {
+    flex: 1;
+    min-width: 0;
+    max-height: 84px;
+    overflow-y: auto;
+  }
+  .ph {
+    font-size: 15px;
+    color: var(--fg-dim);
+  }
+  .err {
+    font-size: 13px;
+    color: var(--danger);
   }
   .transcript {
-    font-size: 17px;
+    margin: 0;
+    font-size: 15.5px;
+    line-height: 1.5;
   }
   .final {
     color: var(--fg);
@@ -705,10 +761,149 @@
   .partial {
     color: var(--accent);
   }
-  .error {
-    color: var(--danger);
-    font-size: 12px;
-    margin-bottom: 6px;
+  .icon-btn {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: var(--icon);
+    background: var(--icon-bg);
+  }
+  .icon-btn:hover:not(:disabled) {
+    color: var(--fg);
+  }
+  .icon-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .icon-btn.ok {
+    color: var(--ok);
+  }
+  .icon-btn.menu {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+  .icon-btn.menu.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* ---- capsule ---- */
+  .capsule {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 16px);
+    transform: translateX(-50%);
+    z-index: 4;
+    width: 176px;
+    height: 46px;
+    border-radius: 15px;
+    background: #15171f;
+    box-shadow: 0 12px 30px rgba(40, 30, 90, 0.32), 0 0 0 1px rgba(124, 92, 255, 0.18),
+      0 0 26px rgba(124, 92, 255, 0.22);
+    overflow: hidden;
+  }
+  .capsule canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* ---- dropdown ---- */
+  .panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 12px);
+    z-index: 8;
+    width: 340px;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+    border-radius: 18px;
+    background: var(--dd-bg);
+    border: 1px solid var(--dd-border);
+    box-shadow: var(--dd-shadow);
+  }
+  .quick {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+  }
+  .quick-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-start;
+    padding: 11px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    text-align: left;
+  }
+  .quick-card.on {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+  }
+  .q-ico {
+    font-size: 16px;
+  }
+  .q-name {
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--fg-mid);
+  }
+  .quick-card.on .q-name {
+    color: var(--on-accent-text);
+  }
+  .q-state {
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    color: var(--fg-dim);
+  }
+  .quick-card.on .q-state {
+    color: var(--accent);
+  }
+  .tabs {
+    display: flex;
+    gap: 18px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .tab {
+    position: relative;
+    padding: 9px 2px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--fg-dim);
+  }
+  .tab.active {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .tab.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  .tab-body {
+    padding: 12px;
+  }
+  .placeholder {
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: 12.5px;
+    padding: 28px 0;
   }
 
   /* history */
@@ -718,7 +913,7 @@
     align-items: center;
     font-size: 12px;
     color: var(--fg-dim);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   .link {
     color: var(--fg-dim);
@@ -742,25 +937,26 @@
     flex: 1;
     text-align: left;
     background: var(--panel);
-    border-radius: 8px;
-    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 9px 11px;
     display: block;
     min-width: 0;
   }
+  .entry-text:hover {
+    border-color: var(--accent-soft-border);
+  }
   .entry-time {
     display: block;
-    margin-bottom: 2px;
-  }
-  .entry-text:hover {
-    background: rgba(255, 255, 255, 0.07);
-  }
-  .entry-time {
-    font-size: 10px;
+    margin-bottom: 3px;
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+    font-size: 9.5px;
     color: var(--fg-dim);
   }
   .entry-body {
-    color: var(--fg);
-    font-size: 13px;
+    color: var(--fg-mid);
+    font-size: 12.5px;
+    line-height: 1.45;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -770,59 +966,36 @@
   }
   .entry-del {
     width: 28px;
-    border-radius: 8px;
+    flex: none;
+    border-radius: 11px;
     color: var(--fg-dim);
     background: var(--panel);
+    border: 1px solid var(--border);
+    font-size: 12px;
   }
   .entry-del:hover {
     color: var(--danger);
-  }
-
-  /* onboarding */
-  .onboarding {
-    max-width: 32ch;
-    text-align: center;
-    gap: 12px;
-  }
-  .ob-badge {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: var(--accent);
-  }
-  .ob-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--fg);
-  }
-  .ob-text {
-    font-size: 13px;
-    color: var(--fg-dim);
-    line-height: 1.5;
   }
 
   /* settings */
   .field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-bottom: 10px;
-    font-size: 12px;
+    gap: 5px;
+    margin-bottom: 11px;
+    font-size: 11px;
     color: var(--fg-dim);
+  }
+  .field > span {
+    padding-left: 1px;
   }
   .field input:not([type="checkbox"]) {
     appearance: none;
     -webkit-appearance: none;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
+    border-radius: 10px;
+    padding: 9px 11px;
     color: var(--fg);
     font-size: 13px;
     outline: none;
@@ -831,10 +1004,32 @@
   .field input:focus {
     border-color: var(--accent);
   }
+  .seg {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+  .seg-btn {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--fg-dim);
+    transition: all 0.15s ease;
+  }
+  .seg-btn.active {
+    color: var(--fg);
+    background: var(--seg-active);
+    box-shadow: var(--seg-shadow);
+  }
   .section-sep {
     margin: 6px 0 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    border-top: 1px solid var(--divider);
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -858,9 +1053,9 @@
   }
   .warn {
     font-size: 12px;
-    color: #fbbf24;
+    color: #d6a206;
     line-height: 1.45;
-    margin: -4px 0 10px;
+    margin: -2px 0 10px;
   }
   .settings-actions {
     display: flex;
@@ -874,72 +1069,27 @@
     font-size: 12px;
   }
   .save-btn {
-    background: var(--accent-strong);
+    background: linear-gradient(140deg, var(--accent), #6d5cff);
     color: #fff;
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: 10px;
+    padding: 9px 18px;
     font-size: 13px;
     font-weight: 600;
+    box-shadow: 0 8px 20px rgba(124, 92, 255, 0.3);
   }
   .save-btn:hover {
-    filter: brightness(1.1);
+    filter: brightness(1.06);
   }
-
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
-    background: #1b1e29;
-  }
-  .meter {
-    flex: 1;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--panel);
-    overflow: hidden;
-  }
-  .meter-fill {
-    display: block;
-    height: 100%;
-    background: var(--accent);
-    transition: width 0.08s linear;
-  }
-  .copied {
-    font-size: 11px;
-    color: var(--ok);
-    white-space: nowrap;
-  }
-  .ghost {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
+  .hide-row {
+    width: 100%;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--divider);
+    text-align: center;
+    font-size: 12px;
     color: var(--fg-dim);
-    background: var(--panel);
   }
-  .ghost:hover:not(:disabled) {
+  .hide-row:hover {
     color: var(--fg);
-  }
-  .ghost:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .ghost.active {
-    background: var(--accent-strong);
-    color: #fff;
-  }
-  .mic {
-    display: block;
-    cursor: pointer;
-    border-radius: 50%;
-    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.55);
-    transition: transform 0.1s ease;
-  }
-  .mic:hover {
-    transform: scale(1.06);
-  }
-  .mic.on {
-    box-shadow: 0 4px 16px rgba(248, 113, 113, 0.55);
   }
 </style>

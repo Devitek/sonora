@@ -33,3 +33,32 @@ export async function setAutoType(value: boolean): Promise<void> {
     console.error("settings save failed:", e);
   }
 }
+
+// --- Theme preference ------------------------------------------------------
+
+export type ThemePref = "system" | "light" | "dark";
+
+export async function getTheme(): Promise<ThemePref> {
+  try {
+    if (!isTauri) {
+      return (localStorage.getItem("transcript-theme") as ThemePref) || "system";
+    }
+    return (await (await getStore()).get<ThemePref>("theme")) ?? "system";
+  } catch {
+    return "system";
+  }
+}
+
+export async function setTheme(value: ThemePref): Promise<void> {
+  try {
+    if (!isTauri) {
+      localStorage.setItem("transcript-theme", value);
+      return;
+    }
+    const store = await getStore();
+    await store.set("theme", value);
+    await store.save();
+  } catch (e) {
+    console.error("theme save failed:", e);
+  }
+}
