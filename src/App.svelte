@@ -223,9 +223,40 @@
           >
         </p>
       {:else}
-        <p class="placeholder">
-          {recState === "idle" ? "Prêt. Appuie sur le micro pour dicter." : "À l'écoute…"}
-        </p>
+        <div class="empty">
+          <button
+            class="big-mic"
+            class:on={listening}
+            onclick={toggle}
+            title={listening ? "Arrêter" : "Démarrer la dictée"}
+            aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
+          >
+            {#if listening}
+              <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
+                <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" />
+              </svg>
+            {:else}
+              <svg
+                viewBox="0 0 24 24"
+                width="36"
+                height="36"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="9" y="2" width="6" height="11" rx="3" />
+                <path d="M5 10a7 7 0 0 0 14 0" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
+            {/if}
+          </button>
+          <p class="placeholder">
+            {recState === "idle" ? "Cliquez le micro pour dicter" : "À l'écoute…"}
+          </p>
+        </div>
       {/if}
     </section>
   {/if}
@@ -237,8 +268,34 @@
     {#if copied}<span class="copied">copié ✓</span>{/if}
     <button class="ghost" onclick={copyCurrent} disabled={!fullText} title="Copier">⧉</button>
     <button class="ghost" onclick={clearAll} disabled={!fullText} title="Effacer">⌫</button>
-    <button class="mic" class:on={listening} onclick={toggle} title="Démarrer / arrêter">
-      {listening ? "■" : "●"}
+    <button
+      class="mic"
+      class:on={listening}
+      onclick={toggle}
+      title="Démarrer / arrêter"
+      aria-label="Démarrer / arrêter la dictée"
+    >
+      {#if listening}
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" />
+        </svg>
+      {:else}
+        <svg
+          viewBox="0 0 24 24"
+          width="22"
+          height="22"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="9" y="2" width="6" height="11" rx="3" />
+          <path d="M5 10a7 7 0 0 0 14 0" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+        </svg>
+      {/if}
     </button>
   </footer>
 </main>
@@ -312,10 +369,44 @@
   }
   .placeholder {
     color: var(--fg-dim);
-    margin: auto;
     text-align: center;
-    font-size: 15px;
+    font-size: 14px;
     max-width: 28ch;
+  }
+  .empty {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .big-mic {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: var(--accent-strong);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 10px 28px rgba(79, 70, 229, 0.5);
+    transition:
+      transform 0.12s ease,
+      background 0.2s ease;
+  }
+  .big-mic:hover {
+    transform: scale(1.06);
+  }
+  .big-mic.on {
+    background: var(--danger);
+    animation: pulse 1.5s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.55);
+    }
+    100% {
+      box-shadow: 0 0 0 24px rgba(248, 113, 113, 0);
+    }
   }
   .transcript {
     font-size: 17px;
@@ -438,22 +529,23 @@
     cursor: default;
   }
   .mic {
-    width: 44px;
-    height: 44px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: var(--accent-strong);
-    color: white;
-    font-size: 16px;
+    color: #fff;
     display: grid;
     place-items: center;
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.55);
     transition:
       transform 0.1s ease,
       background 0.2s ease;
   }
   .mic:hover {
-    transform: scale(1.05);
+    transform: scale(1.06);
   }
   .mic.on {
     background: var(--danger);
+    box-shadow: 0 4px 16px rgba(248, 113, 113, 0.55);
   }
 </style>
