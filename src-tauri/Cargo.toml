@@ -27,6 +27,7 @@ futures-util = "0.3.32"
 base64 = "0.22.1"
 dotenvy = "0.15"
 reqwest = { version = "0.12", features = ["multipart", "json"] }
+whisper-rs = "0.16.0"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"

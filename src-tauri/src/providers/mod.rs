@@ -12,6 +12,7 @@
 
 pub mod gemini;
 pub mod openai_compat;
+pub mod whisper_local;
 
 use std::sync::Mutex;
 
@@ -92,6 +93,15 @@ impl ProviderConfig {
                 language,
                 kind,
             },
+            "whisper-local" => Self {
+                model: env_nonempty("TRANSCRIPT_WHISPER_MODEL").ok_or(
+                    "Définis TRANSCRIPT_WHISPER_MODEL (chemin vers un modèle ggml .bin).",
+                )?,
+                api_key: String::new(),
+                base_url: None,
+                language,
+                kind,
+            },
             other => return Err(format!("Fournisseur inconnu: '{other}'")),
         };
         Ok(cfg)
@@ -148,6 +158,9 @@ impl SessionController {
             }
             "openai" | "groq" | "openai-compatible" => {
                 tauri::async_runtime::spawn(openai_compat::run_session(app, cfg, rx));
+            }
+            "whisper-local" => {
+                tauri::async_runtime::spawn(whisper_local::run_session(app, cfg, rx));
             }
             other => return Err(format!("Fournisseur inconnu: '{other}'")),
         }

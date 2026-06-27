@@ -50,6 +50,7 @@
           # native build glue
           pkg-config
           cargo-tauri
+          cmake # whisper-rs (whisper.cpp) build
           # Wayland output helpers (typing at cursor / clipboard CLI fallback)
           wtype
           wl-clipboard
