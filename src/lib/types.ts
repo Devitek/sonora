@@ -25,6 +25,10 @@ export interface Settings {
   language?: string;
   base_url?: string;
   whisper_model?: string;
+  cleanup_enabled?: boolean;
+  cleanup_provider?: string;
+  cleanup_model?: string;
+  cleanup_base_url?: string;
 }
 
 /** Events emitted by the Rust backend over the Tauri event bus. */

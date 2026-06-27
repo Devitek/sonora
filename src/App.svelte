@@ -34,6 +34,9 @@
   let settingsMsg = $state("");
   /** true once a usable transcription config resolves (drives onboarding). */
   let configured = $state(true);
+  let cleaning = $state(false);
+  let cleanupKey = $state("");
+  let hasCleanupKey = $state(false);
 
   const PROVIDERS = [
     { id: "gemini", label: "Gemini Live (streaming)" },
@@ -53,6 +56,8 @@
   const needsKey = $derived(
     ["gemini", "openai", "groq", "openai-compatible"].includes(provider),
   );
+  const cleanupEnabled = $derived(settings.cleanup_enabled === true);
+  const cleanupProvider = $derived(settings.cleanup_provider ?? "gemini");
 
   const listening = $derived(recState === "listening" || recState === "starting");
   const finalsText = $derived(finals.join(" ").trim());
@@ -82,7 +87,8 @@
             finals = [...finals, t];
             partial = "";
             void autoCopy();
-            if (autoType) {
+            // When cleanup is on we type the cleaned text once at the end.
+            if (autoType && !cleanupEnabled) {
               void invoke("type_text", { text: t + " " }).catch(
                 (e) => (errorMsg = String(e)),
               );
@@ -150,10 +156,43 @@
     flashCopied();
   }
 
+  /** Clean `text` via the LLM, update the display + clipboard. Returns the text
+   *  to persist (the cleaned version, or the original on failure). */
+  async function runCleanup(text: string): Promise<string> {
+    cleaning = true;
+    try {
+      const cleaned = (await invoke<string>("cleanup_text", { text }))?.trim();
+      if (cleaned) {
+        finals = [cleaned];
+        partial = "";
+        await copyText(cleaned);
+        return cleaned;
+      }
+    } catch (e) {
+      errorMsg = "Nettoyage : " + String(e);
+    } finally {
+      cleaning = false;
+    }
+    return text;
+  }
+
+  async function cleanupNow() {
+    if (!finalsText || cleaning) return;
+    await runCleanup(finalsText);
+  }
+
   /** Persist the just-finished session (called when the backend goes idle). */
   async function finalizeSession() {
-    const text = finalsText;
+    let text = finalsText;
     if (!text) return;
+    if (cleanupEnabled) {
+      text = await runCleanup(text);
+      if (autoType) {
+        await invoke("type_text", { text: text + " " }).catch(
+          (e) => (errorMsg = String(e)),
+        );
+      }
+    }
     history = [newEntry(text), ...history];
     await saveHistory(history);
   }
@@ -205,10 +244,15 @@
     settings = s && Object.keys(s).length ? s : { provider: "gemini" };
     if (!settings.provider) settings.provider = "gemini";
     await refreshHasKey();
+    await refreshHasCleanupKey();
   }
 
   async function refreshHasKey() {
     hasKey = await invoke<boolean>("has_api_key", { provider: provider });
+  }
+
+  async function refreshHasCleanupKey() {
+    hasCleanupKey = await invoke<boolean>("has_api_key", { provider: "cleanup" });
   }
 
   async function refreshConfigured() {
@@ -233,6 +277,11 @@
       await invoke("save_api_key", { provider: provider, key: apiKey });
       apiKey = "";
       await refreshHasKey();
+    }
+    if (cleanupKey) {
+      await invoke("save_api_key", { provider: "cleanup", key: cleanupKey });
+      cleanupKey = "";
+      await refreshHasCleanupKey();
     }
     await refreshConfigured();
     settingsMsg = "Enregistré ✓";
@@ -351,6 +400,53 @@
         <input type="text" bind:value={settings.language} placeholder="fr · vide = auto" />
       </label>
 
+      <div class="section-sep">Nettoyage des hésitations</div>
+
+      <label class="field check">
+        <input type="checkbox" bind:checked={settings.cleanup_enabled} />
+        <span>Nettoyer automatiquement (retirer « euh », faux départs…)</span>
+      </label>
+
+      {#if settings.cleanup_enabled}
+        <label class="field">
+          <span>Moteur de nettoyage</span>
+          <select bind:value={settings.cleanup_provider}>
+            <option value="gemini">Gemini</option>
+            <option value="openai-compatible">OpenAI-compatible (OpenAI / Groq / local)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Modèle de nettoyage</span>
+          <input
+            type="text"
+            bind:value={settings.cleanup_model}
+            placeholder={cleanupProvider === "gemini"
+              ? "gemini-2.5-flash"
+              : "ex. llama-3.3-70b-versatile"}
+          />
+        </label>
+        {#if cleanupProvider === "gemini"}
+          <p class="hint">Utilise la clé Gemini configurée plus haut.</p>
+        {:else}
+          <label class="field">
+            <span>URL de base</span>
+            <input
+              type="text"
+              bind:value={settings.cleanup_base_url}
+              placeholder="https://api.groq.com/openai/v1"
+            />
+          </label>
+          <label class="field">
+            <span>Clé API nettoyage {hasCleanupKey ? "· enregistrée ✓" : ""}</span>
+            <input
+              type="password"
+              bind:value={cleanupKey}
+              placeholder={hasCleanupKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
+            />
+          </label>
+        {/if}
+      {/if}
+
       <div class="settings-actions">
         {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
         <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
@@ -437,7 +533,15 @@
     <div class="meter" aria-hidden="true">
       <span class="meter-fill" style={`width:${Math.min(100, Math.round(level * 100))}%`}></span>
     </div>
-    {#if copied}<span class="copied">copié ✓</span>{/if}
+    {#if cleaning}<span class="copied">nettoyage…</span>{:else if copied}<span class="copied"
+        >copié ✓</span
+      >{/if}
+    <button
+      class="ghost"
+      onclick={cleanupNow}
+      disabled={!fullText || cleaning}
+      title="Nettoyer (retirer les hésitations)">✦</button
+    >
     <button
       class="ghost"
       class:active={autoType}
@@ -712,6 +816,31 @@
   .field input:focus,
   .field select:focus {
     border-color: var(--accent);
+  }
+  .section-sep {
+    margin: 6px 0 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--fg-dim);
+  }
+  .field.check {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    color: var(--fg);
+    font-size: 13px;
+  }
+  .field.check input {
+    width: auto;
+    accent-color: var(--accent-strong);
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--fg-dim);
+    margin: -4px 0 10px;
   }
   .settings-actions {
     display: flex;

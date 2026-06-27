@@ -13,6 +13,12 @@ pub struct Settings {
     pub language: Option<String>,
     pub base_url: Option<String>,
     pub whisper_model: Option<String>,
+
+    // Post-processing: strip hesitation / filler markers via an LLM.
+    pub cleanup_enabled: Option<bool>,
+    pub cleanup_provider: Option<String>, // gemini | openai-compatible
+    pub cleanup_model: Option<String>,
+    pub cleanup_base_url: Option<String>,
 }
 
 fn path(config_dir: &Path) -> PathBuf {

@@ -1,6 +1,7 @@
 //! transcript — real-time speech-to-text with pluggable models.
 
 mod audio;
+mod cleanup;
 mod events;
 mod output;
 mod providers;
@@ -54,6 +55,13 @@ fn take_pending_action(state: State<'_, PendingAction>) -> Option<String> {
 #[tauri::command]
 fn type_text(text: String) -> Result<(), String> {
     output::type_text(&text)
+}
+
+/// Post-process a transcript through an LLM to strip hesitation/filler markers.
+#[tauri::command]
+async fn cleanup_text(app: AppHandle, text: String) -> Result<String, String> {
+    let dir = config_dir(&app)?;
+    cleanup::run(&dir, &text).await
 }
 
 fn config_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -219,6 +227,7 @@ pub fn run() {
             hide_window,
             take_pending_action,
             type_text,
+            cleanup_text,
             get_settings,
             save_settings,
             is_configured,
