@@ -44,6 +44,7 @@ pub async fn run_session(
             return;
         }
     };
+    eprintln!("[gemini] WebSocket connecté (model={})", cfg.model);
     let (mut write, mut read) = ws.split();
 
     // Text modality (response ignored) + input-audio transcription.
@@ -61,6 +62,7 @@ pub async fn run_session(
         .emit(&app);
         return;
     }
+    eprintln!("[gemini] setup envoyé: {}", setup);
 
     let mut ready = false;
     let mut pending: Vec<i16> = Vec::new(); // audio captured before setupComplete
@@ -97,6 +99,7 @@ pub async fn run_session(
             },
             maybe = read.next() => match maybe {
                 Some(Ok(Message::Text(txt))) => {
+                    log_server(txt.as_str());
                     if process_server(txt.as_str(), &app, &mut transcript, &mut ready) && !pending.is_empty() {
                         let _ = send_audio(&mut write, &pending).await;
                         pending.clear();
@@ -104,12 +107,28 @@ pub async fn run_session(
                 }
                 Some(Ok(Message::Binary(bin))) => {
                     let txt = String::from_utf8_lossy(&bin);
+                    log_server(&txt);
                     if process_server(&txt, &app, &mut transcript, &mut ready) && !pending.is_empty() {
                         let _ = send_audio(&mut write, &pending).await;
                         pending.clear();
                     }
                 }
-                Some(Ok(Message::Close(_))) | None => break 'main,
+                Some(Ok(Message::Close(frame))) => {
+                    let reason = frame
+                        .map(|f| format!("code {} — {}", u16::from(f.code), f.reason))
+                        .unwrap_or_else(|| "sans raison".into());
+                    eprintln!("[gemini] fermeture serveur: {reason} (ready={ready})");
+                    // Closed before setupComplete -> the producer refused the
+                    // session (bad model/key/fields); surface it in the HUD.
+                    if !ready {
+                        BackendEvent::Error {
+                            message: format!("Gemini a refusé la session: {reason}"),
+                        }
+                        .emit(&app);
+                    }
+                    break 'main;
+                }
+                None => break 'main,
                 Some(Ok(_)) => {} // ping / pong / frame
                 Some(Err(e)) => {
                     BackendEvent::Error { message: format!("Flux Gemini interrompu: {e}") }.emit(&app);
@@ -186,6 +205,12 @@ fn process_server(txt: &str, app: &AppHandle, transcript: &mut String, ready: &m
     }
 
     false
+}
+
+/// Log a server frame (truncated) for diagnostics.
+fn log_server(txt: &str) {
+    let snippet: String = txt.chars().take(400).collect();
+    eprintln!("[gemini] reçu: {snippet}");
 }
 
 async fn send_audio<S>(write: &mut S, samples: &[i16]) -> Result<(), WsError>

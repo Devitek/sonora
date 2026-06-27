@@ -36,7 +36,10 @@
       switch (ev.kind) {
         case "state":
           recState = ev.state;
-          if (ev.state === "idle") void finalizeSession();
+          if (ev.state === "idle") {
+            void finalizeSession();
+            void invoke("stop_recording"); // release mic if the session ended on its own
+          }
           break;
         case "partial":
           partial = ev.text;
