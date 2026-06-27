@@ -46,7 +46,3 @@ button {
   appearance: none;
   -webkit-appearance: none;
 }
-
-svg {
-  display: block;
-}

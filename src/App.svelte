@@ -240,7 +240,7 @@
             onkeydown={onMicKey}
             title={listening ? "Arrêter" : "Démarrer la dictée"}
             aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
-            style="width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{listening
+            style="position:relative;flex:none;width:88px;height:88px;border-radius:50%;cursor:pointer;background:{listening
               ? '#ef4444'
               : '#4f46e5'};color:#fff"
           >
@@ -290,7 +290,7 @@
       onkeydown={onMicKey}
       title="Démarrer / arrêter"
       aria-label="Démarrer / arrêter la dictée"
-      style="width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{listening
+      style="position:relative;flex:none;width:50px;height:50px;border-radius:50%;cursor:pointer;background:{listening
         ? '#ef4444'
         : '#4f46e5'};color:#fff"
     >
@@ -404,6 +404,16 @@
     transition:
       transform 0.12s ease,
       background 0.2s ease;
+  }
+  /* Position icons out of flow so their (WebKitGTK-buggy) intrinsic SVG size
+     can never collapse the mic button. */
+  .big-mic svg,
+  .mic svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
   }
   .big-mic:hover {
     transform: scale(1.06);
