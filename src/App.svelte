@@ -136,6 +136,13 @@
     }
   }
 
+  function onMicKey(e: KeyboardEvent) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      void toggle();
+    }
+  }
+
   function clearAll() {
     finals = [];
     partial = "";
@@ -224,13 +231,16 @@
         </p>
       {:else}
         <div class="empty">
-          <button
+          <div
             class="big-mic"
             class:on={listening}
+            role="button"
+            tabindex="0"
             onclick={toggle}
+            onkeydown={onMicKey}
             title={listening ? "Arrêter" : "Démarrer la dictée"}
             aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
-            style="-webkit-appearance:none;appearance:none;background:{listening
+            style="width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{listening
               ? '#ef4444'
               : '#4f46e5'};color:#fff"
           >
@@ -255,7 +265,7 @@
                 <line x1="12" y1="19" x2="12" y2="22" />
               </svg>
             {/if}
-          </button>
+          </div>
           <p class="placeholder">
             {recState === "idle" ? "Cliquez le micro pour dicter" : "À l'écoute…"}
           </p>
@@ -271,13 +281,16 @@
     {#if copied}<span class="copied">copié ✓</span>{/if}
     <button class="ghost" onclick={copyCurrent} disabled={!fullText} title="Copier">⧉</button>
     <button class="ghost" onclick={clearAll} disabled={!fullText} title="Effacer">⌫</button>
-    <button
+    <div
       class="mic"
       class:on={listening}
+      role="button"
+      tabindex="0"
       onclick={toggle}
+      onkeydown={onMicKey}
       title="Démarrer / arrêter"
       aria-label="Démarrer / arrêter la dictée"
-      style="-webkit-appearance:none;appearance:none;background:{listening
+      style="width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{listening
         ? '#ef4444'
         : '#4f46e5'};color:#fff"
     >
@@ -302,7 +315,7 @@
           <line x1="12" y1="19" x2="12" y2="22" />
         </svg>
       {/if}
-    </button>
+    </div>
   </footer>
 </main>
 
@@ -387,13 +400,6 @@
     gap: 16px;
   }
   .big-mic {
-    width: 88px;
-    height: 88px;
-    border-radius: 50%;
-    background: var(--accent-strong);
-    color: #fff;
-    display: grid;
-    place-items: center;
     box-shadow: 0 10px 28px rgba(79, 70, 229, 0.5);
     transition:
       transform 0.12s ease,
@@ -462,10 +468,12 @@
     background: var(--panel);
     border-radius: 8px;
     padding: 7px 9px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: block;
     min-width: 0;
+  }
+  .entry-time {
+    display: block;
+    margin-bottom: 2px;
   }
   .entry-text:hover {
     background: rgba(255, 255, 255, 0.07);
@@ -535,13 +543,6 @@
     cursor: default;
   }
   .mic {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: var(--accent-strong);
-    color: #fff;
-    display: grid;
-    place-items: center;
     box-shadow: 0 4px 16px rgba(79, 70, 229, 0.55);
     transition:
       transform 0.1s ease,
