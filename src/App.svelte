@@ -231,41 +231,28 @@
         </p>
       {:else}
         <div class="empty">
-          <div
+          <svg
             class="big-mic"
             class:on={listening}
             role="button"
             tabindex="0"
             onclick={toggle}
             onkeydown={onMicKey}
-            title={listening ? "Arrêter" : "Démarrer la dictée"}
             aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
-            style="position:relative;flex:none;width:88px;height:88px;border-radius:50%;cursor:pointer;background:{listening
-              ? '#ef4444'
-              : '#4f46e5'};color:#fff"
+            width="88"
+            height="88"
+            viewBox="0 0 88 88"
+            style="width:88px;height:88px"
           >
+            <circle cx="44" cy="44" r="44" fill={listening ? "#ef4444" : "#4f46e5"} />
             {#if listening}
-              <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
-                <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" />
-              </svg>
+              <rect x="31" y="31" width="26" height="26" rx="4" fill="#fff" />
             {:else}
-              <svg
-                viewBox="0 0 24 24"
-                width="36"
-                height="36"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="9" y="2" width="6" height="11" rx="3" />
-                <path d="M5 10a7 7 0 0 0 14 0" />
-                <line x1="12" y1="19" x2="12" y2="22" />
-              </svg>
+              <rect x="37" y="20" width="14" height="28" rx="7" fill="#fff" />
+              <path d="M28 42 a16 16 0 0 0 32 0" fill="none" stroke="#fff" stroke-width="3.5" />
+              <line x1="44" y1="58" x2="44" y2="68" stroke="#fff" stroke-width="3.5" />
             {/if}
-          </div>
+          </svg>
           <p class="placeholder">
             {recState === "idle" ? "Cliquez le micro pour dicter" : "À l'écoute…"}
           </p>
@@ -281,41 +268,28 @@
     {#if copied}<span class="copied">copié ✓</span>{/if}
     <button class="ghost" onclick={copyCurrent} disabled={!fullText} title="Copier">⧉</button>
     <button class="ghost" onclick={clearAll} disabled={!fullText} title="Effacer">⌫</button>
-    <div
+    <svg
       class="mic"
       class:on={listening}
       role="button"
       tabindex="0"
       onclick={toggle}
       onkeydown={onMicKey}
-      title="Démarrer / arrêter"
       aria-label="Démarrer / arrêter la dictée"
-      style="position:relative;flex:none;width:50px;height:50px;border-radius:50%;cursor:pointer;background:{listening
-        ? '#ef4444'
-        : '#4f46e5'};color:#fff"
+      width="50"
+      height="50"
+      viewBox="0 0 50 50"
+      style="width:50px;height:50px"
     >
+      <circle cx="25" cy="25" r="25" fill={listening ? "#ef4444" : "#4f46e5"} />
       {#if listening}
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-          <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" />
-        </svg>
+        <rect x="17" y="17" width="16" height="16" rx="3" fill="#fff" />
       {:else}
-        <svg
-          viewBox="0 0 24 24"
-          width="22"
-          height="22"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="9" y="2" width="6" height="11" rx="3" />
-          <path d="M5 10a7 7 0 0 0 14 0" />
-          <line x1="12" y1="19" x2="12" y2="22" />
-        </svg>
+        <rect x="21" y="11" width="8" height="16" rx="4" fill="#fff" />
+        <path d="M16 24 a9 9 0 0 0 18 0" fill="none" stroke="#fff" stroke-width="2.5" />
+        <line x1="25" y1="33" x2="25" y2="39" stroke="#fff" stroke-width="2.5" />
       {/if}
-    </div>
+    </svg>
   </footer>
 </main>
 
@@ -400,26 +374,17 @@
     gap: 16px;
   }
   .big-mic {
+    display: block;
+    cursor: pointer;
+    border-radius: 50%;
     box-shadow: 0 10px 28px rgba(79, 70, 229, 0.5);
-    transition:
-      transform 0.12s ease,
-      background 0.2s ease;
-  }
-  /* Position icons out of flow so their (WebKitGTK-buggy) intrinsic SVG size
-     can never collapse the mic button. */
-  .big-mic svg,
-  .mic svg {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
+    transition: transform 0.12s ease;
   }
   .big-mic:hover {
     transform: scale(1.06);
   }
   .big-mic.on {
-    background: var(--danger);
+    box-shadow: 0 10px 28px rgba(248, 113, 113, 0.5);
     animation: pulse 1.5s ease-out infinite;
   }
   @keyframes pulse {
@@ -553,16 +518,16 @@
     cursor: default;
   }
   .mic {
+    display: block;
+    cursor: pointer;
+    border-radius: 50%;
     box-shadow: 0 4px 16px rgba(79, 70, 229, 0.55);
-    transition:
-      transform 0.1s ease,
-      background 0.2s ease;
+    transition: transform 0.1s ease;
   }
   .mic:hover {
     transform: scale(1.06);
   }
   .mic.on {
-    background: var(--danger);
     box-shadow: 0 4px 16px rgba(248, 113, 113, 0.55);
   }
 </style>
