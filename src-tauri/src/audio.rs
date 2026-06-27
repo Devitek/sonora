@@ -292,7 +292,8 @@ struct Pipeline {
     noise_floor: f32,
     in_speech: bool,
     hangover: u32,
-    seg_samples: usize,
+    /// 16 kHz mono PCM of the current speech segment (for chunked providers).
+    seg_buf: Vec<i16>,
     resampled: Vec<f32>,
     level_peak: f32,
     last_level: Instant,
@@ -308,7 +309,7 @@ impl Pipeline {
             noise_floor: ABS_THRESHOLD,
             in_speech: false,
             hangover: 0,
-            seg_samples: 0,
+            seg_buf: Vec::new(),
             resampled: Vec::with_capacity(4096),
             level_peak: 0.0,
             last_level: Instant::now(),
@@ -350,23 +351,42 @@ impl Pipeline {
         let threshold = (self.noise_floor * SPEECH_FACTOR).max(ABS_THRESHOLD);
         let voiced = rms > threshold;
 
+        // Capture this frame's PCM only when it belongs to a speech segment.
+        let frame_pcm: Option<Vec<i16>> = if self.in_speech || voiced {
+            Some(
+                frame
+                    .iter()
+                    .map(|s| (s.clamp(-1.0, 1.0) * 32767.0) as i16)
+                    .collect(),
+            )
+        } else {
+            None
+        };
+
         match (self.in_speech, voiced) {
             (false, true) => {
                 self.in_speech = true;
                 self.hangover = HANGOVER;
-                self.seg_samples = frame.len();
+                self.seg_buf.clear();
+                if let Some(p) = frame_pcm {
+                    self.seg_buf.extend_from_slice(&p);
+                }
             }
             (true, true) => {
                 self.hangover = HANGOVER;
-                self.seg_samples += frame.len();
+                if let Some(p) = frame_pcm {
+                    self.seg_buf.extend_from_slice(&p);
+                }
             }
             (true, false) => {
-                self.seg_samples += frame.len();
+                if let Some(p) = frame_pcm {
+                    self.seg_buf.extend_from_slice(&p);
+                }
                 if self.hangover == 0 {
-                    let ms = self.seg_samples as f32 / TARGET_RATE as f32 * 1000.0;
+                    let ms = self.seg_buf.len() as f32 / TARGET_RATE as f32 * 1000.0;
                     eprintln!("[transcript:audio] segment de parole: {ms:.0} ms");
+                    self.emit_segment();
                     self.in_speech = false;
-                    self.seg_samples = 0;
                 } else {
                     self.hangover -= 1;
                 }
@@ -386,10 +406,22 @@ impl Pipeline {
         }
     }
 
+    /// Hand the buffered speech segment to a chunked provider (no-op otherwise).
+    fn emit_segment(&mut self) {
+        let seg = std::mem::take(&mut self.seg_buf);
+        if seg.is_empty() {
+            return;
+        }
+        if let Some(sink) = &self.sink {
+            sink.segment(seg);
+        }
+    }
+
     fn finish(&mut self) {
-        if self.in_speech && self.seg_samples > 0 {
-            let ms = self.seg_samples as f32 / TARGET_RATE as f32 * 1000.0;
+        if self.in_speech && !self.seg_buf.is_empty() {
+            let ms = self.seg_buf.len() as f32 / TARGET_RATE as f32 * 1000.0;
             eprintln!("[transcript:audio] segment final: {ms:.0} ms");
+            self.emit_segment();
         }
         if let Some(sink) = &self.sink {
             sink.eos();

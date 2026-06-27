@@ -88,8 +88,10 @@ pub async fn run_session(
                         }
                     }
                 }
-                _ => {
-                    // Eos (or pipeline gone): flush and tell Gemini the stream ended.
+                // Streaming provider does its own endpointing — ignore VAD segments.
+                Some(AudioMsg::Segment(_)) => {}
+                Some(AudioMsg::Eos) | None => {
+                    // Flush and tell Gemini the stream ended.
                     if ready && !send_buf.is_empty() {
                         let _ = send_audio(&mut write, &send_buf).await;
                     }
