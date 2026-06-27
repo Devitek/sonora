@@ -249,14 +249,11 @@
     display: flex;
     flex-direction: column;
     background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 14px;
     overflow: hidden;
-    backdrop-filter: blur(18px);
     transition: border-color 0.2s ease;
   }
   .hud.listening {
-    border-color: rgba(129, 140, 248, 0.5);
+    box-shadow: inset 0 0 0 2px rgba(129, 140, 248, 0.65);
   }
 
   .bar {
