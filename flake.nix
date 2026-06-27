@@ -86,11 +86,8 @@
             export WEBKIT_DISABLE_COMPOSITING_MODE=1
             export GIO_MODULE_DIR="${pkgs.glib-networking}/lib/gio/modules"
             export GI_TYPELIB_PATH="${pkgs.lib.makeSearchPath "lib/girepository-1.0" giLibs}:''${GI_TYPELIB_PATH:-}"
-            # Load provider credentials (GEMINI_API_KEY, ...) from a local .env
-            if [ -f .env ]; then
-              set -a; . ./.env; set +a
-              echo "loaded .env"
-            fi
+            # Credentials are loaded by the app itself from .env (see main.rs),
+            # so editing .env takes effect on the next launch without re-sourcing.
             echo "transcript devshell ready — run: bun install && bun run tauri dev"
           '';
         };
