@@ -47,11 +47,13 @@ pub async fn run_session(
     eprintln!("[gemini] WebSocket connecté (model={})", cfg.model);
     let (mut write, mut read) = ws.split();
 
-    // Text modality (response ignored) + input-audio transcription.
+    // The available Live models are native-audio: they only accept the AUDIO
+    // response modality. We don't care about the spoken reply (discarded) —
+    // `inputAudioTranscription` is what yields the user's dictation transcript.
     let setup = json!({
         "setup": {
             "model": format!("models/{}", cfg.model),
-            "generationConfig": { "responseModalities": ["TEXT"] },
+            "generationConfig": { "responseModalities": ["AUDIO"] },
             "inputAudioTranscription": {}
         }
     });
@@ -207,8 +209,11 @@ fn process_server(txt: &str, app: &AppHandle, transcript: &mut String, ready: &m
     false
 }
 
-/// Log a server frame (truncated) for diagnostics.
+/// Log a server frame (truncated) for diagnostics, skipping bulky audio chunks.
 fn log_server(txt: &str) {
+    if txt.contains("inlineData") {
+        return; // discarded audio response — don't spam the log
+    }
     let snippet: String = txt.chars().take(400).collect();
     eprintln!("[gemini] reçu: {snippet}");
 }

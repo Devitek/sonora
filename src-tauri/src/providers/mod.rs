@@ -59,8 +59,9 @@ impl ProviderConfig {
 
 fn default_model(kind: &str) -> &'static str {
     match kind {
-        "gemini" => "gemini-2.0-flash-live-001",
-        _ => "gemini-2.0-flash-live-001",
+        // Live (bidiGenerateContent) model that supports input-audio transcription.
+        "gemini" => "gemini-2.5-flash-native-audio-latest",
+        _ => "gemini-2.5-flash-native-audio-latest",
     }
 }
 
