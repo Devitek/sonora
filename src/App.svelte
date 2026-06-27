@@ -230,6 +230,9 @@
             onclick={toggle}
             title={listening ? "Arrêter" : "Démarrer la dictée"}
             aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
+            style="-webkit-appearance:none;appearance:none;background:{listening
+              ? '#ef4444'
+              : '#4f46e5'};color:#fff"
           >
             {#if listening}
               <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
@@ -274,6 +277,9 @@
       onclick={toggle}
       title="Démarrer / arrêter"
       aria-label="Démarrer / arrêter la dictée"
+      style="-webkit-appearance:none;appearance:none;background:{listening
+        ? '#ef4444'
+        : '#4f46e5'};color:#fff"
     >
       {#if listening}
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -492,9 +498,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
-    border-top: 1px solid var(--border);
-    background: rgba(0, 0, 0, 0.25);
+    padding: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    background: #1b1e29;
   }
   .meter {
     flex: 1;
