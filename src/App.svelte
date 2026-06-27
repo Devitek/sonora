@@ -738,7 +738,6 @@
     background: var(--surface);
     border: 1px solid var(--surface-border);
     box-shadow: var(--surface-shadow);
-    backdrop-filter: blur(20px);
   }
   .rec {
     flex: none;

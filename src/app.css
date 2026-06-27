@@ -8,9 +8,11 @@
   --fg-dim: #7c8398;
 
   /* floating bar */
-  --surface: rgba(32, 34, 46, 0.92);
+  --surface: rgba(32, 34, 46, 0.96);
   --surface-border: rgba(255, 255, 255, 0.1);
-  --surface-shadow: 0 14px 44px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  /* keep it light: a hairline ring instead of a heavy drop shadow (which looks
+     like an ugly dark rectangle over a transparent window). */
+  --surface-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
 
   /* soft fills / borders (used by inputs, chips, Select) */
   --panel: rgba(255, 255, 255, 0.05);
@@ -21,7 +23,7 @@
   /* dropdown */
   --dd-bg: #181a24;
   --dd-border: rgba(255, 255, 255, 0.09);
-  --dd-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --dd-shadow: 0 12px 30px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.07);
 
   --accent: #7c5cff;
   --accent-2: #22d3ee;
