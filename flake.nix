@@ -83,10 +83,11 @@
           shellHook = ''
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath runtimeLibs}:''${LD_LIBRARY_PATH:-}"
             export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPathOutput "dev" "lib/pkgconfig" runtimeLibs}:''${PKG_CONFIG_PATH:-}"
-            # WebKitGTK on Wayland/Nvidia can need software compositing.
-            export WEBKIT_DISABLE_COMPOSITING_MODE=1
             export GIO_MODULE_DIR="${pkgs.glib-networking}/lib/gio/modules"
             export GI_TYPELIB_PATH="${pkgs.lib.makeSearchPath "lib/girepository-1.0" giLibs}:''${GI_TYPELIB_PATH:-}"
+            # NB: do NOT set WEBKIT_DISABLE_COMPOSITING_MODE — it disables the
+            # compositor and breaks window transparency / backdrop-filter (the
+            # floating-bar look). Re-enable only if you hit GPU rendering issues.
             # Credentials are loaded by the app itself from .env (see main.rs),
             # so editing .env takes effect on the next launch without re-sourcing.
             echo "transcript devshell ready — run: bun install && bun run tauri dev"

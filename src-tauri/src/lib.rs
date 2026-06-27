@@ -38,10 +38,10 @@ fn parse_action(args: &[String]) -> Option<&'static str> {
     })
 }
 
-/// Surface the HUD and forward an action to the frontend. Recording actions do
+/// Surface the floating bar and forward an action to the frontend. The bar does
 /// NOT grab focus, so dictated text keeps landing in the app the user was using.
 fn dispatch_action(app: &AppHandle, action: &str) {
-    surface_window(app, action == "show");
+    show_window(app);
     let _ = app.emit(CONTROL_CHANNEL, serde_json::json!({ "action": action }));
 }
 
@@ -140,7 +140,7 @@ fn stop_recording(
     Ok(())
 }
 
-/// Hide the HUD window (app keeps running in the tray).
+/// Hide the floating bar (app keeps running in the tray).
 #[tauri::command]
 fn hide_window(app: AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
@@ -148,17 +148,21 @@ fn hide_window(app: AppHandle) {
     }
 }
 
-fn show_window(app: &AppHandle) {
-    surface_window(app, true);
+/// Resize the bar window to fit its content height (Spotlight-style growth),
+/// keeping the top-left fixed so the bar doesn't jump. Width stays constant.
+#[tauri::command]
+fn resize_bar(app: AppHandle, height: u32) {
+    if let Some(win) = app.get_webview_window("main") {
+        let h = height.clamp(80, 1000) as f64;
+        let _ = win.set_size(tauri::LogicalSize::new(480.0, h));
+    }
 }
 
-/// Show the HUD; only grab keyboard focus when `focus` is true.
-fn surface_window(app: &AppHandle, focus: bool) {
+/// Show the floating bar WITHOUT stealing focus, so the app the user is in
+/// keeps it (dictation-to-cursor works). Clicking the bar focuses it naturally.
+fn show_window(app: &AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.show();
-        if focus {
-            let _ = win.set_focus();
-        }
     }
 }
 
@@ -225,6 +229,7 @@ pub fn run() {
             start_recording,
             stop_recording,
             hide_window,
+            resize_bar,
             take_pending_action,
             type_text,
             cleanup_text,

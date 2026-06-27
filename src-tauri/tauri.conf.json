@@ -15,16 +15,16 @@
       {
         "label": "main",
         "title": "transcript",
-        "width": 460,
-        "height": 440,
-        "minWidth": 360,
-        "minHeight": 220,
-        "resizable": true,
+        "width": 480,
+        "height": 160,
+        "resizable": false,
         "decorations": false,
-        "transparent": false,
+        "transparent": true,
         "alwaysOnTop": true,
+        "skipTaskbar": true,
         "center": true,
-        "shadow": false
+        "shadow": false,
+        "focus": false
       }
     ],
     "security": {

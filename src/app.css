@@ -90,7 +90,9 @@
 html,
 body {
   height: 100%;
-  background: var(--bg-solid);
+  /* transparent so only the floating bar (and its dropdowns) are visible — the
+     real desktop shows through. */
+  background: transparent;
   overflow: hidden;
   user-select: none;
 }

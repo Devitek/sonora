@@ -95,6 +95,28 @@
   const fullText = $derived([...finals, partial].filter(Boolean).join(" ").trim());
   const hasText = $derived(fullText.length > 0);
 
+  // Grow/shrink the transparent window to fit the bar + capsule + menu, so there
+  // is no big transparent dead-zone capturing clicks (Spotlight-style).
+  let lastBarHeight = 0;
+  function measureAndResize() {
+    let bottom = 0;
+    for (const sel of [".bar", ".capsule", ".panel"]) {
+      const el = document.querySelector(sel);
+      if (el) bottom = Math.max(bottom, el.getBoundingClientRect().bottom);
+    }
+    const h = Math.ceil(bottom + 18);
+    if (h > 0 && Math.abs(h - lastBarHeight) > 2) {
+      lastBarHeight = h;
+      void invoke("resize_bar", { height: h });
+    }
+  }
+
+  $effect(() => {
+    // Track everything that can change the visible height, then re-measure.
+    void [menuOpen, listening, errorMsg, configured, hasText, partial, finals.length];
+    requestAnimationFrame(measureAndResize);
+  });
+
   onMount(() => {
     void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
     void loadHistory().then((h) => (history = h));
@@ -107,6 +129,14 @@
     systemDark = mq.matches;
     const onMq = (e: MediaQueryListEvent) => (systemDark = e.matches);
     mq.addEventListener("change", onMq);
+
+    // Spotlight-style dismiss: Escape closes the menu, or hides the bar.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (menuOpen) menuOpen = false;
+      else void hideWindow();
+    };
+    window.addEventListener("keydown", onKey);
 
     const unlistenEvents = listen<BackendEvent>(EVENT_CHANNEL, (ev) => {
       switch (ev.kind) {
@@ -157,6 +187,7 @@
 
     return () => {
       mq.removeEventListener("change", onMq);
+      window.removeEventListener("keydown", onKey);
       void unlistenEvents.then((fn) => fn());
       void unlistenControl.then((fn) => fn());
     };
@@ -673,17 +704,26 @@
   .surface {
     height: 100vh;
     width: 100vw;
-    background: var(--backdrop);
-    padding: 28px 20px;
+    /* transparent window: the desktop shows through. Clicks pass through the
+       empty area (pointer-events:none) — only the bar/capsule/menu catch them. */
+    background: transparent;
+    padding: 18px 20px;
     display: flex;
     justify-content: center;
     overflow: hidden;
+    pointer-events: none;
   }
   .anchor {
     position: relative;
     width: 100%;
     max-width: 420px;
     align-self: flex-start;
+    pointer-events: none;
+  }
+  .bar,
+  .capsule,
+  .panel {
+    pointer-events: auto;
   }
 
   /* ---- bar ---- */
