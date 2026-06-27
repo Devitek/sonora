@@ -9,6 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 SELECTORS="${1:-.big-mic,.mic,.empty,.body,.hud}"
+CLICK="${2:-}" # optional selector to click before measuring
 PORT="${PORT:-8765}"
 
 echo "› building frontend…" >&2
@@ -23,4 +24,4 @@ sleep 0.6
 echo "› rendering in headless WebKitGTK…" >&2
 export GDK_SCALE=1 GDK_DPI_SCALE=1 GDK_BACKEND=x11
 xvfb-run -a -s "-screen 0 1280x800x24 -dpi 96" \
-  gjs scripts/inspect-layout.js "http://localhost:$PORT" "$SELECTORS"
+  gjs scripts/inspect-layout.js "http://localhost:$PORT" "$SELECTORS" "$CLICK"

@@ -13,6 +13,7 @@ const { Gtk, WebKit2, GLib } = imports.gi;
 
 const url = ARGV[0] || "http://localhost:8765";
 const selectors = (ARGV[1] || ".big-mic,.mic,.empty,.body,.hud").split(",");
+const clickSel = ARGV[2] || ""; // optional: click this before measuring
 
 Gtk.init(null);
 
@@ -53,21 +54,34 @@ function buildScript(sels) {
   })();`;
 }
 
+function measureAndQuit() {
+  view.evaluate_javascript(buildScript(selectors), -1, null, null, null, (v2, res) => {
+    try {
+      print(view.evaluate_javascript_finish(res).to_string());
+    } catch (e) {
+      printerr("JS eval error: " + e);
+    }
+    Gtk.main_quit();
+  });
+}
+
 let done = false;
 view.connect("load-changed", (v, ev) => {
   if (ev !== WebKit2.LoadEvent.FINISHED || done) return;
   done = true;
-  // Let layout settle before measuring.
+  // Let layout settle, optionally click a control, settle again, then measure.
   GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-    view.evaluate_javascript(buildScript(selectors), -1, null, null, null, (v2, res) => {
-      try {
-        const val = view.evaluate_javascript_finish(res);
-        print(val.to_string());
-      } catch (e) {
-        printerr("JS eval error: " + e);
-      }
-      Gtk.main_quit();
-    });
+    if (clickSel) {
+      const js = `document.querySelector(${JSON.stringify(clickSel)})?.click();`;
+      view.evaluate_javascript(js, -1, null, null, null, () => {
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+          measureAndQuit();
+          return GLib.SOURCE_REMOVE;
+        });
+      });
+    } else {
+      measureAndQuit();
+    }
     return GLib.SOURCE_REMOVE;
   });
 });
