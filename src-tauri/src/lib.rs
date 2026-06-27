@@ -64,6 +64,13 @@ async fn cleanup_text(app: AppHandle, text: String) -> Result<String, String> {
     cleanup::run(&dir, &text).await
 }
 
+/// Reformulate a transcript with a user-defined prompt (formal, command, ...).
+#[tauri::command]
+async fn transform_text(app: AppHandle, text: String, prompt: String) -> Result<String, String> {
+    let dir = config_dir(&app)?;
+    cleanup::transform(&dir, &prompt, &text).await
+}
+
 fn config_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path().app_config_dir().map_err(|e| e.to_string())
 }
@@ -233,6 +240,7 @@ pub fn run() {
             take_pending_action,
             type_text,
             cleanup_text,
+            transform_text,
             get_settings,
             save_settings,
             is_configured,

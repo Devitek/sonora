@@ -18,6 +18,13 @@ export interface HistoryEntry {
   createdAt: number;
 }
 
+/** A user-defined reformulation prompt. */
+export interface Prompt {
+  id: string;
+  name: string;
+  prompt: string;
+}
+
 /** Non-secret settings (mirrors the Rust `Settings` struct, snake_case). */
 export interface Settings {
   provider?: string;
@@ -29,6 +36,7 @@ export interface Settings {
   cleanup_provider?: string;
   cleanup_model?: string;
   cleanup_base_url?: string;
+  prompts?: Prompt[];
 }
 
 /** Events emitted by the Rust backend over the Tauri event bus. */

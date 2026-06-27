@@ -6,6 +6,13 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
+pub struct Prompt {
+    pub id: String,
+    pub name: String,
+    pub prompt: String,
+}
+
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 #[serde(default)]
 pub struct Settings {
     pub provider: Option<String>,
@@ -14,11 +21,14 @@ pub struct Settings {
     pub base_url: Option<String>,
     pub whisper_model: Option<String>,
 
-    // Post-processing: strip hesitation / filler markers via an LLM.
+    // Post-processing text engine (cleanup + reformulation prompts).
     pub cleanup_enabled: Option<bool>,
-    pub cleanup_provider: Option<String>, // gemini | openai-compatible
+    pub cleanup_provider: Option<String>, // gemini | openai | groq | openai-compatible
     pub cleanup_model: Option<String>,
     pub cleanup_base_url: Option<String>,
+
+    /// User-defined reformulation prompts applied to a finished transcript.
+    pub prompts: Vec<Prompt>,
 }
 
 fn path(config_dir: &Path) -> PathBuf {

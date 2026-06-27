@@ -20,6 +20,7 @@
     type RecordingState,
     type HistoryEntry,
     type Settings,
+    type Prompt,
   } from "./lib/types";
 
   let recState = $state<RecordingState>("idle");
@@ -44,8 +45,11 @@
   /** true once a usable transcription config resolves (drives onboarding). */
   let configured = $state(true);
   let cleaning = $state(false);
+  let procLabel = $state("Reformulation…");
   let cleanupKey = $state("");
   let hasCleanupKey = $state(false);
+  let promptMenuOpen = $state(false);
+  const prompts = $derived(settings.prompts ?? []);
 
   // Theme
   let theme = $state<ThemePref>("system");
@@ -100,7 +104,7 @@
   let lastBarHeight = 0;
   function measureAndResize() {
     let bottom = 0;
-    for (const sel of [".bar", ".capsule", ".panel"]) {
+    for (const sel of [".bar", ".capsule", ".panel", ".prompt-menu"]) {
       const el = document.querySelector(sel);
       if (!el) continue;
       const r = el.getBoundingClientRect();
@@ -118,7 +122,17 @@
 
   $effect(() => {
     // Track everything that can change the visible height, then re-measure.
-    void [menuOpen, listening, errorMsg, configured, hasText, partial, finals.length];
+    void [
+      menuOpen,
+      promptMenuOpen,
+      prompts.length,
+      listening,
+      errorMsg,
+      configured,
+      hasText,
+      partial,
+      finals.length,
+    ];
     requestAnimationFrame(measureAndResize);
   });
 
@@ -138,7 +152,8 @@
     // Spotlight-style dismiss: Escape closes the menu, or hides the bar.
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (menuOpen) menuOpen = false;
+      if (promptMenuOpen) promptMenuOpen = false;
+      else if (menuOpen) menuOpen = false;
       else void hideWindow();
     };
     window.addEventListener("keydown", onKey);
@@ -236,6 +251,7 @@
    *  to persist (the cleaned version, or the original on failure). */
   async function runCleanup(text: string): Promise<string> {
     cleaning = true;
+    procLabel = "Nettoyage…";
     try {
       const cleaned = (await invoke<string>("cleanup_text", { text }))?.trim();
       if (cleaned) {
@@ -253,8 +269,48 @@
   }
 
   async function cleanupNow() {
+    promptMenuOpen = false;
     if (!finalsText || cleaning) return;
     await runCleanup(finalsText);
+  }
+
+  /** Apply a user-defined reformulation prompt to the current transcript. */
+  async function runTransform(promptText: string, text: string): Promise<string> {
+    cleaning = true;
+    procLabel = "Reformulation…";
+    try {
+      const out = (
+        await invoke<string>("transform_text", { text, prompt: promptText })
+      )?.trim();
+      if (out) {
+        finals = [out];
+        partial = "";
+        await copyText(out);
+        return out;
+      }
+    } catch (e) {
+      errorMsg = "Reformulation : " + String(e);
+    } finally {
+      cleaning = false;
+    }
+    return text;
+  }
+
+  async function applyPrompt(p: Prompt) {
+    promptMenuOpen = false;
+    if (!finalsText || cleaning) return;
+    await runTransform(p.prompt, finalsText);
+  }
+
+  function addPrompt() {
+    settings.prompts = [
+      ...(settings.prompts ?? []),
+      { id: crypto.randomUUID(), name: "", prompt: "" },
+    ];
+  }
+
+  function removePrompt(id: string) {
+    settings.prompts = (settings.prompts ?? []).filter((p) => p.id !== id);
   }
 
   /** Persist the just-finished session (called when the backend goes idle). */
@@ -325,6 +381,7 @@
     const s = await invoke<Settings>("get_settings");
     settings = s && Object.keys(s).length ? s : { provider: "gemini" };
     if (!settings.provider) settings.provider = "gemini";
+    if (!settings.prompts) settings.prompts = [];
     await refreshHasKey();
     await refreshHasCleanupKey();
   }
@@ -515,8 +572,19 @@
         {/if}
       </div>
 
+      {#if cleaning}<span class="proc">{procLabel}</span>{/if}
+
       {#if hasText && !listening}
-        <button class="icon-btn" onclick={cleanupNow} disabled={cleaning} title="Nettoyer (retirer les hésitations)">✦</button>
+        <button
+          class="icon-btn"
+          class:active={promptMenuOpen}
+          onclick={() => {
+            menuOpen = false;
+            promptMenuOpen = !promptMenuOpen;
+          }}
+          disabled={cleaning}
+          title="Reformuler / nettoyer">✦</button
+        >
         <button class="icon-btn" class:ok={copied} onclick={copyCurrent} title="Copier">
           {#if copied}✓{:else}⧉{/if}
         </button>
@@ -536,6 +604,31 @@
     {#if listening}
       <div class="capsule">
         <canvas bind:this={canvasEl}></canvas>
+      </div>
+    {/if}
+
+    <!-- REFORMULATE / PROMPTS MENU -->
+    {#if promptMenuOpen && hasText}
+      <div class="prompt-menu">
+        <button class="pm-item" onclick={cleanupNow} disabled={cleaning}>
+          <span class="pm-ico">✦</span>
+          <span>Nettoyer les hésitations</span>
+        </button>
+        {#each prompts as p (p.id)}
+          {#if (p.name ?? "").trim() || (p.prompt ?? "").trim()}
+            <button class="pm-item" onclick={() => applyPrompt(p)} disabled={cleaning}>
+              <span class="pm-ico">↻</span>
+              <span>{(p.name ?? "").trim() || "Sans nom"}</span>
+            </button>
+          {/if}
+        {/each}
+        <button
+          class="pm-manage"
+          onclick={() => {
+            promptMenuOpen = false;
+            openSettings();
+          }}>+ Gérer les prompts</button
+        >
       </div>
     {/if}
 
@@ -692,6 +785,34 @@
               {/if}
             {/if}
 
+            <div class="section-sep">Prompts de reformulation</div>
+            <p class="hint">
+              Appliquez-les à une dictée via le bouton ✦. Ils utilisent le moteur configuré
+              ci-dessus.
+            </p>
+            {#each settings.prompts ?? [] as p (p.id)}
+              <div class="prompt-row">
+                <div class="prompt-head">
+                  <input
+                    class="prompt-name"
+                    type="text"
+                    bind:value={p.name}
+                    placeholder="Nom (ex. Formel, Commande terminal…)"
+                  />
+                  <button class="prompt-del" title="Supprimer" onclick={() => removePrompt(p.id)}
+                    >✕</button
+                  >
+                </div>
+                <textarea
+                  class="prompt-text"
+                  rows="2"
+                  bind:value={p.prompt}
+                  placeholder="Instruction, ex. « Réécris ce texte de manière formelle et professionnelle. »"
+                ></textarea>
+              </div>
+            {/each}
+            <button class="add-prompt" onclick={addPrompt}>+ Ajouter un prompt</button>
+
             <div class="settings-actions">
               {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
               <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
@@ -727,8 +848,67 @@
   }
   .bar,
   .capsule,
-  .panel {
+  .panel,
+  .prompt-menu {
     pointer-events: auto;
+  }
+
+  /* ---- reformulate / prompts menu ---- */
+  .prompt-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 8;
+    width: 268px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-radius: 14px;
+    background: var(--dd-bg);
+    border: 1px solid var(--dd-border);
+    box-shadow: var(--dd-shadow);
+  }
+  .pm-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 9px 10px;
+    border-radius: 9px;
+    color: var(--fg);
+    font-size: 13px;
+  }
+  .pm-item:hover:not(:disabled) {
+    background: var(--panel);
+  }
+  .pm-item:disabled {
+    opacity: 0.5;
+  }
+  .pm-ico {
+    color: var(--accent);
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+  }
+  .pm-manage {
+    margin-top: 4px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    color: var(--fg-dim);
+    font-size: 12px;
+    text-align: left;
+    border-top: 1px solid var(--divider);
+  }
+  .pm-manage:hover {
+    color: var(--fg);
+  }
+  .proc {
+    flex: none;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
   }
 
   /* ---- bar ---- */
@@ -1123,6 +1303,72 @@
   }
   .save-btn:hover {
     filter: brightness(1.06);
+  }
+  .prompt-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+  }
+  .prompt-head {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .prompt-name,
+  .prompt-text {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 9px;
+    color: var(--fg);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .prompt-name {
+    flex: 1;
+    width: 100%;
+  }
+  .prompt-text {
+    width: 100%;
+    resize: vertical;
+    min-height: 46px;
+    line-height: 1.45;
+  }
+  .prompt-name:focus,
+  .prompt-text:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+  .prompt-del {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    color: var(--fg-dim);
+    background: var(--panel-2);
+  }
+  .prompt-del:hover {
+    color: var(--danger);
+  }
+  .add-prompt {
+    width: 100%;
+    padding: 9px;
+    border-radius: 9px;
+    border: 1px dashed var(--border);
+    color: var(--fg-dim);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .add-prompt:hover {
+    color: var(--fg);
+    border-color: var(--accent-soft-border);
   }
   .hide-row {
     width: 100%;
