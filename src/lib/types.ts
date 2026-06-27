@@ -18,6 +18,15 @@ export interface HistoryEntry {
   createdAt: number;
 }
 
+/** Non-secret settings (mirrors the Rust `Settings` struct, snake_case). */
+export interface Settings {
+  provider?: string;
+  model?: string;
+  language?: string;
+  base_url?: string;
+  whisper_model?: string;
+}
+
 /** Events emitted by the Rust backend over the Tauri event bus. */
 export type BackendEvent =
   | { kind: "state"; state: RecordingState }

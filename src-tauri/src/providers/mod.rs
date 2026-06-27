@@ -14,10 +14,13 @@ pub mod gemini;
 pub mod openai_compat;
 pub mod whisper_local;
 
+use std::path::Path;
 use std::sync::Mutex;
 
 use tauri::AppHandle;
 use tokio::sync::mpsc;
+
+use crate::{secrets, settings};
 
 /// Messages flowing from the audio pipeline to a provider session.
 pub enum AudioMsg {
@@ -41,42 +44,45 @@ pub struct ProviderConfig {
 }
 
 impl ProviderConfig {
-    /// Config from environment (dev). M7 replaces this with the settings UI +
-    /// OS keyring. Supported `TRANSCRIPT_PROVIDER` values:
-    ///   gemini | openai | groq | openai-compatible
-    pub fn from_env() -> Result<Self, String> {
-        let kind = env_nonempty("TRANSCRIPT_PROVIDER").unwrap_or_else(|| "gemini".into());
-        let language = env_nonempty("TRANSCRIPT_LANGUAGE");
-        let model_override = env_nonempty("TRANSCRIPT_MODEL");
-        let base_override = env_nonempty("TRANSCRIPT_BASE_URL");
+    /// Resolve the active config: stored settings + keyring API key take
+    /// precedence, falling back to environment variables (.env) per field.
+    /// Supported providers: gemini | openai | groq | openai-compatible | whisper-local
+    pub fn resolve(config_dir: &Path) -> Result<Self, String> {
+        let s = settings::load(config_dir);
+
+        let kind = nonempty(s.provider)
+            .or_else(|| env_nonempty("TRANSCRIPT_PROVIDER"))
+            .unwrap_or_else(|| "gemini".into());
+        let model_override = nonempty(s.model).or_else(|| env_nonempty("TRANSCRIPT_MODEL"));
+        let base_override = nonempty(s.base_url).or_else(|| env_nonempty("TRANSCRIPT_BASE_URL"));
+        let language = nonempty(s.language).or_else(|| env_nonempty("TRANSCRIPT_LANGUAGE"));
+        let whisper_model =
+            nonempty(s.whisper_model).or_else(|| env_nonempty("TRANSCRIPT_WHISPER_MODEL"));
+
+        let stored_key = secrets::get_api_key(config_dir, &kind);
+        let key_or = |env_keys: &[&str]| stored_key.clone().or_else(|| first_env(env_keys));
+        let no_key = "Aucune clé API. Configure-la dans les réglages (⚙).";
 
         let cfg = match kind.as_str() {
             "gemini" => Self {
-                model: model_override.unwrap_or_else(|| "gemini-2.5-flash-native-audio-latest".into()),
-                api_key: require_key(
-                    &["TRANSCRIPT_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"],
-                    "Définis GEMINI_API_KEY (ou TRANSCRIPT_API_KEY).",
-                )?,
+                model: model_override
+                    .unwrap_or_else(|| "gemini-2.5-flash-native-audio-latest".into()),
+                api_key: key_or(&["GEMINI_API_KEY", "GOOGLE_API_KEY", "TRANSCRIPT_API_KEY"])
+                    .ok_or(no_key)?,
                 base_url: None,
                 language,
                 kind,
             },
             "openai" => Self {
                 model: model_override.unwrap_or_else(|| "whisper-1".into()),
-                api_key: require_key(
-                    &["OPENAI_API_KEY", "TRANSCRIPT_API_KEY"],
-                    "Définis OPENAI_API_KEY.",
-                )?,
+                api_key: key_or(&["OPENAI_API_KEY", "TRANSCRIPT_API_KEY"]).ok_or(no_key)?,
                 base_url: Some(base_override.unwrap_or_else(|| "https://api.openai.com/v1".into())),
                 language,
                 kind,
             },
             "groq" => Self {
                 model: model_override.unwrap_or_else(|| "whisper-large-v3".into()),
-                api_key: require_key(
-                    &["GROQ_API_KEY", "TRANSCRIPT_API_KEY"],
-                    "Définis GROQ_API_KEY.",
-                )?,
+                api_key: key_or(&["GROQ_API_KEY", "TRANSCRIPT_API_KEY"]).ok_or(no_key)?,
                 base_url: Some(
                     base_override.unwrap_or_else(|| "https://api.groq.com/openai/v1".into()),
                 ),
@@ -84,19 +90,15 @@ impl ProviderConfig {
                 kind,
             },
             "openai-compatible" => Self {
-                base_url: Some(
-                    base_override.ok_or("Définis TRANSCRIPT_BASE_URL pour openai-compatible.")?,
-                ),
-                model: model_override
-                    .ok_or("Définis TRANSCRIPT_MODEL pour openai-compatible.")?,
-                api_key: env_nonempty("TRANSCRIPT_API_KEY").unwrap_or_default(),
+                base_url: Some(base_override.ok_or("Définis l'URL de base dans les réglages.")?),
+                model: model_override.ok_or("Définis le modèle dans les réglages.")?,
+                api_key: key_or(&["TRANSCRIPT_API_KEY"]).unwrap_or_default(),
                 language,
                 kind,
             },
             "whisper-local" => Self {
-                model: env_nonempty("TRANSCRIPT_WHISPER_MODEL").ok_or(
-                    "Définis TRANSCRIPT_WHISPER_MODEL (chemin vers un modèle ggml .bin).",
-                )?,
+                model: whisper_model
+                    .ok_or("Définis le chemin du modèle whisper dans les réglages.")?,
                 api_key: String::new(),
                 base_url: None,
                 language,
@@ -112,10 +114,12 @@ fn env_nonempty(key: &str) -> Option<String> {
     std::env::var(key).ok().filter(|s| !s.is_empty())
 }
 
-fn require_key(keys: &[&str], hint: &str) -> Result<String, String> {
-    keys.iter()
-        .find_map(|k| env_nonempty(k))
-        .ok_or_else(|| format!("Aucune clé API. {hint}"))
+fn nonempty(v: Option<String>) -> Option<String> {
+    v.filter(|s| !s.is_empty())
+}
+
+fn first_env(keys: &[&str]) -> Option<String> {
+    keys.iter().find_map(|k| env_nonempty(k))
 }
 
 /// Cheap, cloneable handle the audio pipeline uses to push samples.

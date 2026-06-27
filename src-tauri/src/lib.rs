@@ -4,7 +4,10 @@ mod audio;
 mod events;
 mod output;
 mod providers;
+mod secrets;
+mod settings;
 
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use audio::AudioController;
@@ -53,6 +56,38 @@ fn type_text(text: String) -> Result<(), String> {
     output::type_text(&text)
 }
 
+fn config_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path().app_config_dir().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_settings(app: AppHandle) -> Result<settings::Settings, String> {
+    Ok(settings::load(&config_dir(&app)?))
+}
+
+#[tauri::command]
+fn save_settings(app: AppHandle, settings: settings::Settings) -> Result<(), String> {
+    settings::save(&config_dir(&app)?, &settings)
+}
+
+/// Whether an API key is stored for `provider` (the key itself is never returned).
+#[tauri::command]
+fn has_api_key(app: AppHandle, provider: String) -> Result<bool, String> {
+    Ok(secrets::has_api_key(&config_dir(&app)?, &provider))
+}
+
+/// Store (or, when empty, delete) the API key for `provider`.
+#[tauri::command]
+fn save_api_key(app: AppHandle, provider: String, key: String) -> Result<(), String> {
+    let dir = config_dir(&app)?;
+    if key.is_empty() {
+        secrets::delete_api_key(&dir, &provider);
+        Ok(())
+    } else {
+        secrets::set_api_key(&dir, &provider, &key)
+    }
+}
+
 /// Liveness probe used by the frontend on mount to confirm the IPC bridge.
 #[tauri::command]
 fn app_ready() -> String {
@@ -68,7 +103,7 @@ fn start_recording(
     audio: State<'_, AudioController>,
     session: State<'_, SessionController>,
 ) -> Result<(), String> {
-    let cfg = ProviderConfig::from_env()?;
+    let cfg = ProviderConfig::resolve(&config_dir(&app)?)?;
     let sink = session.start(app.clone(), cfg)?;
     audio.start(app, Some(sink))
 }
@@ -173,7 +208,11 @@ pub fn run() {
             stop_recording,
             hide_window,
             take_pending_action,
-            type_text
+            type_text,
+            get_settings,
+            save_settings,
+            has_api_key,
+            save_api_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running transcript");

@@ -12,6 +12,7 @@
     type ControlAction,
     type RecordingState,
     type HistoryEntry,
+    type Settings,
   } from "./lib/types";
 
   let recState = $state<RecordingState>("idle");
@@ -25,6 +26,31 @@
   let copied = $state(false);
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
   let autoType = $state(false);
+
+  let showSettings = $state(false);
+  let settings = $state<Settings>({ provider: "gemini" });
+  let apiKey = $state("");
+  let hasKey = $state(false);
+  let settingsMsg = $state("");
+
+  const PROVIDERS = [
+    { id: "gemini", label: "Gemini Live (streaming)" },
+    { id: "openai", label: "OpenAI Whisper" },
+    { id: "groq", label: "Groq Whisper (rapide)" },
+    { id: "openai-compatible", label: "OpenAI-compatible" },
+    { id: "whisper-local", label: "Whisper local (offline)" },
+  ];
+  const MODEL_PLACEHOLDER: Record<string, string> = {
+    gemini: "gemini-2.5-flash-native-audio-latest",
+    openai: "whisper-1",
+    groq: "whisper-large-v3",
+    "openai-compatible": "whisper-1",
+    "whisper-local": "",
+  };
+  const provider = $derived(settings.provider ?? "gemini");
+  const needsKey = $derived(
+    ["gemini", "openai", "groq", "openai-compatible"].includes(provider),
+  );
 
   const listening = $derived(recState === "listening" || recState === "starting");
   const finalsText = $derived(finals.join(" ").trim());
@@ -165,6 +191,46 @@
     await setAutoType(autoType);
   }
 
+  async function loadSettings() {
+    const s = await invoke<Settings>("get_settings");
+    settings = s && Object.keys(s).length ? s : { provider: "gemini" };
+    if (!settings.provider) settings.provider = "gemini";
+    await refreshHasKey();
+  }
+
+  async function refreshHasKey() {
+    hasKey = await invoke<boolean>("has_api_key", { provider: provider });
+  }
+
+  async function onProviderChange(e: Event) {
+    settings.provider = (e.target as HTMLSelectElement).value;
+    apiKey = "";
+    await refreshHasKey();
+  }
+
+  function openSettings() {
+    showHistory = false;
+    showSettings = true;
+    void loadSettings();
+  }
+
+  async function saveSettings() {
+    await invoke("save_settings", { settings: $state.snapshot(settings) });
+    if (apiKey) {
+      await invoke("save_api_key", { provider: provider, key: apiKey });
+      apiKey = "";
+      await refreshHasKey();
+    }
+    settingsMsg = "Enregistré ✓";
+    setTimeout(() => (settingsMsg = ""), 1500);
+  }
+
+  async function clearKey() {
+    await invoke("save_api_key", { provider: provider, key: "" });
+    apiKey = "";
+    await refreshHasKey();
+  }
+
   async function copyEntry(entry: HistoryEntry) {
     await copyText(entry.text);
     flashCopied();
@@ -201,17 +267,81 @@
       transcript
     </div>
     <div class="win-controls">
+      <button class="icon" class:active={showSettings} title="Réglages" onclick={openSettings}
+        >⚙</button
+      >
       <button
         class="icon"
         class:active={showHistory}
         title="Historique"
-        onclick={() => (showHistory = !showHistory)}>≣</button
+        onclick={() => {
+          showSettings = false;
+          showHistory = !showHistory;
+        }}>≣</button
       >
       <button class="icon" title="Masquer (reste dans le tray)" onclick={hideWindow}>—</button>
     </div>
   </header>
 
-  {#if showHistory}
+  {#if showSettings}
+    <section class="body settings">
+      <label class="field">
+        <span>Fournisseur</span>
+        <select value={settings.provider} onchange={onProviderChange}>
+          {#each PROVIDERS as p}
+            <option value={p.id}>{p.label}</option>
+          {/each}
+        </select>
+      </label>
+
+      {#if needsKey}
+        <label class="field">
+          <span>Clé API {hasKey ? "· enregistrée ✓" : ""}</span>
+          <input
+            type="password"
+            bind:value={apiKey}
+            placeholder={hasKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
+          />
+        </label>
+        {#if hasKey}
+          <button class="link" onclick={clearKey}>Supprimer la clé enregistrée</button>
+        {/if}
+      {/if}
+
+      <label class="field">
+        <span>Modèle (optionnel)</span>
+        <input
+          type="text"
+          bind:value={settings.model}
+          placeholder={MODEL_PLACEHOLDER[provider] || "défaut"}
+        />
+      </label>
+
+      {#if provider === "openai-compatible"}
+        <label class="field">
+          <span>URL de base</span>
+          <input type="text" bind:value={settings.base_url} placeholder="http://localhost:8000/v1" />
+        </label>
+      {/if}
+
+      {#if provider === "whisper-local"}
+        <label class="field">
+          <span>Chemin du modèle ggml</span>
+          <input type="text" bind:value={settings.whisper_model} placeholder="/chemin/ggml-base.bin" />
+        </label>
+      {/if}
+
+      <label class="field">
+        <span>Langue (optionnel)</span>
+        <input type="text" bind:value={settings.language} placeholder="fr · vide = auto" />
+      </label>
+
+      <div class="settings-actions">
+        {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
+        <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
+      </div>
+    </section>
+  {:else if showHistory}
     <section class="body history">
       {#if history.length === 0}
         <p class="placeholder">Aucun historique pour l'instant.</p>
@@ -501,6 +631,55 @@
   }
   .entry-del:hover {
     color: var(--danger);
+  }
+
+  /* settings */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--fg-dim);
+  }
+  .field input,
+  .field select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--fg);
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+  }
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--accent);
+  }
+  .settings-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .ok-msg {
+    color: var(--ok);
+    font-size: 12px;
+  }
+  .save-btn {
+    background: var(--accent-strong);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .save-btn:hover {
+    filter: brightness(1.1);
   }
 
   .actions {
