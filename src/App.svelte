@@ -102,7 +102,12 @@
     let bottom = 0;
     for (const sel of [".bar", ".capsule", ".panel"]) {
       const el = document.querySelector(sel);
-      if (el) bottom = Math.max(bottom, el.getBoundingClientRect().bottom);
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      // Use scrollHeight so the window grows to the element's FULL content,
+      // which removes the panel's internal scroll (WebKitGTK leaves black
+      // repaint trails when scrolling a transparent window).
+      bottom = Math.max(bottom, r.top + Math.max(el.scrollHeight, r.height));
     }
     const h = Math.ceil(bottom + 18);
     if (h > 0 && Math.abs(h - lastBarHeight) > 2) {
@@ -860,7 +865,7 @@
     top: calc(100% + 12px);
     z-index: 8;
     width: 340px;
-    max-height: calc(100vh - 150px);
+    max-height: calc(100vh - 110px);
     overflow-y: auto;
     border-radius: 18px;
     background: var(--dd-bg);
