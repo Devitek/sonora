@@ -13,7 +13,8 @@ const { Gtk, WebKit2, GLib } = imports.gi;
 
 const url = ARGV[0] || "http://localhost:8765";
 const selectors = (ARGV[1] || ".big-mic,.mic,.empty,.body,.hud").split(",");
-const clickSel = ARGV[2] || ""; // optional: click this before measuring
+// optional: click these (｜-separated) before measuring, in order
+const clicks = (ARGV[2] || "").split("|").filter((s) => s.length);
 
 Gtk.init(null);
 
@@ -65,23 +66,27 @@ function measureAndQuit() {
   });
 }
 
+function clickThen(i) {
+  if (i >= clicks.length) {
+    measureAndQuit();
+    return;
+  }
+  const js = `document.querySelector(${JSON.stringify(clicks[i])})?.click();`;
+  view.evaluate_javascript(js, -1, null, null, null, () => {
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+      clickThen(i + 1);
+      return GLib.SOURCE_REMOVE;
+    });
+  });
+}
+
 let done = false;
 view.connect("load-changed", (v, ev) => {
   if (ev !== WebKit2.LoadEvent.FINISHED || done) return;
   done = true;
-  // Let layout settle, optionally click a control, settle again, then measure.
+  // Let layout settle, optionally click a sequence of controls, then measure.
   GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-    if (clickSel) {
-      const js = `document.querySelector(${JSON.stringify(clickSel)})?.click();`;
-      view.evaluate_javascript(js, -1, null, null, null, () => {
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-          measureAndQuit();
-          return GLib.SOURCE_REMOVE;
-        });
-      });
-    } else {
-      measureAndQuit();
-    }
+    clickThen(0);
     return GLib.SOURCE_REMOVE;
   });
 });

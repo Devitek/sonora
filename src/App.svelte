@@ -4,6 +4,7 @@
   import { copyText } from "./lib/clipboard";
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
   import { getAutoType, setAutoType } from "./lib/settings";
+  import Select from "./lib/Select.svelte";
   import {
     EVENT_CHANNEL,
     CONTROL_CHANNEL,
@@ -44,6 +45,10 @@
     { id: "groq", label: "Groq Whisper (rapide)" },
     { id: "openai-compatible", label: "OpenAI-compatible" },
     { id: "whisper-local", label: "Whisper local (offline)" },
+  ];
+  const CLEANUP_ENGINES = [
+    { id: "gemini", label: "Gemini" },
+    { id: "openai-compatible", label: "OpenAI-compatible (OpenAI / Groq / local)" },
   ];
   const MODEL_PLACEHOLDER: Record<string, string> = {
     gemini: "gemini-2.5-flash-native-audio-latest",
@@ -259,12 +264,6 @@
     configured = await invoke<boolean>("is_configured");
   }
 
-  async function onProviderChange(e: Event) {
-    settings.provider = (e.target as HTMLSelectElement).value;
-    apiKey = "";
-    await refreshHasKey();
-  }
-
   function openSettings() {
     showHistory = false;
     showSettings = true;
@@ -349,14 +348,17 @@
 
   {#if showSettings}
     <section class="body settings">
-      <label class="field">
+      <div class="field">
         <span>Fournisseur</span>
-        <select value={settings.provider} onchange={onProviderChange}>
-          {#each PROVIDERS as p}
-            <option value={p.id}>{p.label}</option>
-          {/each}
-        </select>
-      </label>
+        <Select
+          bind:value={settings.provider}
+          options={PROVIDERS}
+          onChange={() => {
+            apiKey = "";
+            void refreshHasKey();
+          }}
+        />
+      </div>
 
       {#if needsKey}
         <label class="field">
@@ -408,13 +410,10 @@
       </label>
 
       {#if settings.cleanup_enabled}
-        <label class="field">
+        <div class="field">
           <span>Moteur de nettoyage</span>
-          <select bind:value={settings.cleanup_provider}>
-            <option value="gemini">Gemini</option>
-            <option value="openai-compatible">OpenAI-compatible (OpenAI / Groq / local)</option>
-          </select>
-        </label>
+          <Select bind:value={settings.cleanup_provider} options={CLEANUP_ENGINES} />
+        </div>
         <label class="field">
           <span>Modèle de nettoyage</span>
           <input
@@ -800,8 +799,7 @@
     font-size: 12px;
     color: var(--fg-dim);
   }
-  .field input,
-  .field select {
+  .field input:not([type="checkbox"]) {
     appearance: none;
     -webkit-appearance: none;
     background: var(--panel);
@@ -813,8 +811,7 @@
     outline: none;
     width: 100%;
   }
-  .field input:focus,
-  .field select:focus {
+  .field input:focus {
     border-color: var(--accent);
   }
   .section-sep {
