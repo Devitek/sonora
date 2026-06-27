@@ -70,6 +70,16 @@ fn save_settings(app: AppHandle, settings: settings::Settings) -> Result<(), Str
     settings::save(&config_dir(&app)?, &settings)
 }
 
+/// Whether a usable transcription config resolves (provider + required key/
+/// fields). Drives the first-run onboarding so the user configures a model
+/// before hitting a start error.
+#[tauri::command]
+fn is_configured(app: AppHandle) -> bool {
+    config_dir(&app)
+        .map(|dir| ProviderConfig::resolve(&dir).is_ok())
+        .unwrap_or(false)
+}
+
 /// Whether an API key is stored for `provider` (the key itself is never returned).
 #[tauri::command]
 fn has_api_key(app: AppHandle, provider: String) -> Result<bool, String> {
@@ -211,6 +221,7 @@ pub fn run() {
             type_text,
             get_settings,
             save_settings,
+            is_configured,
             has_api_key,
             save_api_key
         ])

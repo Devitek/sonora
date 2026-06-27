@@ -32,6 +32,8 @@
   let apiKey = $state("");
   let hasKey = $state(false);
   let settingsMsg = $state("");
+  /** true once a usable transcription config resolves (drives onboarding). */
+  let configured = $state(true);
 
   const PROVIDERS = [
     { id: "gemini", label: "Gemini Live (streaming)" },
@@ -60,6 +62,7 @@
     void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
     void loadHistory().then((h) => (history = h));
     void getAutoType().then((v) => (autoType = v));
+    void refreshConfigured();
 
     const unlistenEvents = listen<BackendEvent>(EVENT_CHANNEL, (ev) => {
       switch (ev.kind) {
@@ -160,6 +163,12 @@
       await invoke("stop_recording");
       recState = "idle"; // optimistic; backend confirms after finalize
     } else {
+      // Not set up yet? Guide to settings instead of failing on start.
+      await refreshConfigured();
+      if (!configured) {
+        openSettings();
+        return;
+      }
       // new session: clear the canvas (previous text is already in history)
       errorMsg = "";
       finals = [];
@@ -202,6 +211,10 @@
     hasKey = await invoke<boolean>("has_api_key", { provider: provider });
   }
 
+  async function refreshConfigured() {
+    configured = await invoke<boolean>("is_configured");
+  }
+
   async function onProviderChange(e: Event) {
     settings.provider = (e.target as HTMLSelectElement).value;
     apiKey = "";
@@ -221,6 +234,7 @@
       apiKey = "";
       await refreshHasKey();
     }
+    await refreshConfigured();
     settingsMsg = "Enregistré ✓";
     setTimeout(() => (settingsMsg = ""), 1500);
   }
@@ -229,6 +243,7 @@
     await invoke("save_api_key", { provider: provider, key: "" });
     apiKey = "";
     await refreshHasKey();
+    await refreshConfigured();
   }
 
   async function copyEntry(entry: HistoryEntry) {
@@ -376,6 +391,16 @@
             >{partial}</span
           >
         </p>
+      {:else if !configured}
+        <div class="empty onboarding">
+          <div class="ob-badge">⚙</div>
+          <h2 class="ob-title">Configurez la transcription</h2>
+          <p class="ob-text">
+            Choisissez un fournisseur d'IA — Gemini, Groq, OpenAI ou Whisper local — et
+            saisissez votre clé pour commencer à dicter.
+          </p>
+          <button class="save-btn" onclick={openSettings}>Ouvrir les réglages</button>
+        </div>
       {:else}
         <div class="empty">
           <svg
@@ -631,6 +656,35 @@
   }
   .entry-del:hover {
     color: var(--danger);
+  }
+
+  /* onboarding */
+  .onboarding {
+    max-width: 32ch;
+    text-align: center;
+    gap: 12px;
+  }
+  .ob-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--accent);
+  }
+  .ob-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .ob-text {
+    font-size: 13px;
+    color: var(--fg-dim);
+    line-height: 1.5;
   }
 
   /* settings */
