@@ -3,6 +3,7 @@
   import { invoke, listen } from "./lib/tauri";
   import { copyText } from "./lib/clipboard";
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
+  import { getAutoType, setAutoType } from "./lib/settings";
   import {
     EVENT_CHANNEL,
     CONTROL_CHANNEL,
@@ -23,6 +24,7 @@
   let showHistory = $state(false);
   let copied = $state(false);
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+  let autoType = $state(false);
 
   const listening = $derived(recState === "listening" || recState === "starting");
   const finalsText = $derived(finals.join(" ").trim());
@@ -31,6 +33,7 @@
   onMount(() => {
     void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
     void loadHistory().then((h) => (history = h));
+    void getAutoType().then((v) => (autoType = v));
 
     const unlistenEvents = listen<BackendEvent>(EVENT_CHANNEL, (ev) => {
       switch (ev.kind) {
@@ -46,9 +49,15 @@
           break;
         case "final":
           if (ev.text.trim()) {
-            finals = [...finals, ev.text.trim()];
+            const t = ev.text.trim();
+            finals = [...finals, t];
             partial = "";
             void autoCopy();
+            if (autoType) {
+              void invoke("type_text", { text: t + " " }).catch(
+                (e) => (errorMsg = String(e)),
+              );
+            }
           }
           break;
         case "level":
@@ -149,6 +158,11 @@
   function clearAll() {
     finals = [];
     partial = "";
+  }
+
+  async function toggleAutoType() {
+    autoType = !autoType;
+    await setAutoType(autoType);
   }
 
   async function copyEntry(entry: HistoryEntry) {
@@ -269,6 +283,15 @@
       <span class="meter-fill" style={`width:${Math.min(100, Math.round(level * 100))}%`}></span>
     </div>
     {#if copied}<span class="copied">copié ✓</span>{/if}
+    <button
+      class="ghost"
+      class:active={autoType}
+      onclick={toggleAutoType}
+      title={autoType
+        ? "Saisie auto au curseur : activée"
+        : "Saisie auto au curseur : désactivée"}
+      aria-pressed={autoType}>⌨</button
+    >
     <button class="ghost" onclick={copyCurrent} disabled={!fullText} title="Copier">⧉</button>
     <button class="ghost" onclick={clearAll} disabled={!fullText} title="Effacer">⌫</button>
     <svg
@@ -519,6 +542,10 @@
   .ghost:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+  .ghost.active {
+    background: var(--accent-strong);
+    color: #fff;
   }
   .mic {
     display: block;

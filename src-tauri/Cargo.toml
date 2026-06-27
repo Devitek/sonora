@@ -33,6 +33,11 @@ whisper-rs = "0.16.0"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
 
+# Synthetic keystrokes for "type at cursor" on macOS/Windows. On Linux we shell
+# out to wtype / xdotool instead (see src/output.rs).
+[target.'cfg(not(any(target_os = "linux", target_os = "android", target_os = "ios")))'.dependencies]
+enigo = "0.3"
+
 [profile.release]
 panic = "abort"
 codegen-units = 1

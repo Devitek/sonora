@@ -2,6 +2,7 @@
 
 mod audio;
 mod events;
+mod output;
 mod providers;
 
 use std::sync::Mutex;
@@ -33,9 +34,10 @@ fn parse_action(args: &[String]) -> Option<&'static str> {
     })
 }
 
-/// Surface the HUD and forward an action to the frontend.
+/// Surface the HUD and forward an action to the frontend. Recording actions do
+/// NOT grab focus, so dictated text keeps landing in the app the user was using.
 fn dispatch_action(app: &AppHandle, action: &str) {
-    show_window(app);
+    surface_window(app, action == "show");
     let _ = app.emit(CONTROL_CHANNEL, serde_json::json!({ "action": action }));
 }
 
@@ -43,6 +45,12 @@ fn dispatch_action(app: &AppHandle, action: &str) {
 #[tauri::command]
 fn take_pending_action(state: State<'_, PendingAction>) -> Option<String> {
     state.0.lock().unwrap().take()
+}
+
+/// Type `text` into the currently focused window (dictation-to-cursor).
+#[tauri::command]
+fn type_text(text: String) -> Result<(), String> {
+    output::type_text(&text)
 }
 
 /// Liveness probe used by the frontend on mount to confirm the IPC bridge.
@@ -88,9 +96,16 @@ fn hide_window(app: AppHandle) {
 }
 
 fn show_window(app: &AppHandle) {
+    surface_window(app, true);
+}
+
+/// Show the HUD; only grab keyboard focus when `focus` is true.
+fn surface_window(app: &AppHandle, focus: bool) {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.show();
-        let _ = win.set_focus();
+        if focus {
+            let _ = win.set_focus();
+        }
     }
 }
 
@@ -157,7 +172,8 @@ pub fn run() {
             start_recording,
             stop_recording,
             hide_window,
-            take_pending_action
+            take_pending_action,
+            type_text
         ])
         .run(tauri::generate_context!())
         .expect("error while running transcript");
