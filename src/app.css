@@ -41,4 +41,12 @@ button {
   border: none;
   background: none;
   color: inherit;
+  /* WebKitGTK draws native GTK button chrome (flat/dark) over our CSS
+     background unless appearance is reset — this hid every styled button. */
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+svg {
+  display: block;
 }
