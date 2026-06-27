@@ -53,6 +53,23 @@
           # Wayland output helpers (typing at cursor / clipboard CLI fallback)
           wtype
           wl-clipboard
+          # Headless WebKitGTK harness for inspecting real layout (scripts/)
+          gjs
+          gobject-introspection
+          xvfb-run
+        ];
+
+        # Typelibs so gjs can `imports.gi.WebKit2` / Gtk in the harness.
+        giLibs = with pkgs; [
+          glib
+          gtk3
+          webkitgtk_4_1
+          pango
+          harfbuzz
+          gdk-pixbuf
+          atk
+          libsoup_3
+          gobject-introspection
         ];
       in
       {
@@ -68,6 +85,7 @@
             # WebKitGTK on Wayland/Nvidia can need software compositing.
             export WEBKIT_DISABLE_COMPOSITING_MODE=1
             export GIO_MODULE_DIR="${pkgs.glib-networking}/lib/gio/modules"
+            export GI_TYPELIB_PATH="${pkgs.lib.makeSearchPath "lib/girepository-1.0" giLibs}:''${GI_TYPELIB_PATH:-}"
             # Load provider credentials (GEMINI_API_KEY, ...) from a local .env
             if [ -f .env ]; then
               set -a; . ./.env; set +a
