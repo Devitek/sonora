@@ -34,8 +34,9 @@ pub async fn run(config_dir: &Path, text: &str) -> Result<String, String> {
             let base = nonempty(s.cleanup_base_url)
                 .or_else(|| default_base(&provider))
                 .ok_or("Définis l'URL de base du nettoyage (⚙).")?;
-            let model =
-                nonempty(s.cleanup_model).ok_or("Définis le modèle de nettoyage (⚙).")?;
+            let model = nonempty(s.cleanup_model)
+                .or_else(|| default_model(&provider))
+                .ok_or("Définis le modèle de nettoyage (⚙).")?;
             let key = secrets::get_api_key(config_dir, "cleanup")
                 .or_else(|| first_env(&["CLEANUP_API_KEY", "TRANSCRIPT_API_KEY"]))
                 .unwrap_or_default();
@@ -144,6 +145,14 @@ fn default_base(provider: &str) -> Option<String> {
         "openai" => Some("https://api.openai.com/v1".into()),
         "groq" => Some("https://api.groq.com/openai/v1".into()),
         _ => None,
+    }
+}
+
+fn default_model(provider: &str) -> Option<String> {
+    match provider {
+        "openai" => Some("gpt-4o-mini".into()),
+        "groq" => Some("llama-3.3-70b-versatile".into()),
+        _ => None, // generic openai-compatible: the user must pick a model
     }
 }
 

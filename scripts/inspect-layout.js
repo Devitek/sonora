@@ -23,18 +23,34 @@ win.set_default_size(460, 340);
 win.resize(460, 340);
 const view = new WebKit2.WebView();
 view.set_size_request(460, 340);
+
+// Capture JS errors / console.error from the page for diagnostics.
+const ucm = view.get_user_content_manager();
+const errScript = WebKit2.UserScript.new(
+  "window.__errs=[];" +
+    "window.addEventListener('error',e=>window.__errs.push(String((e&&(e.message||e.error))||e)));" +
+    "window.addEventListener('unhandledrejection',e=>window.__errs.push('promise: '+String(e.reason)));" +
+    "var _e=console.error;console.error=function(){window.__errs.push(Array.prototype.map.call(arguments,String).join(' '));return _e.apply(console,arguments)};",
+  WebKit2.UserContentInjectedFrames.ALL_FRAMES,
+  WebKit2.UserScriptInjectionTime.START,
+  null,
+  null,
+);
+ucm.add_script(errScript);
+
 win.add(view);
 win.show_all();
 
 function buildScript(sels) {
   return `(function(){
     const sels = ${JSON.stringify(sels)};
-    const out = { __viewport: {
-      innerWidth: window.innerWidth, innerHeight: window.innerHeight,
-      dpr: window.devicePixelRatio,
-      docClientWidth: document.documentElement.clientWidth,
-      docClientHeight: document.documentElement.clientHeight,
-    } };
+    const out = {
+      __errors: (window.__errs || []).slice(0, 20),
+      __viewport: {
+        innerWidth: window.innerWidth, innerHeight: window.innerHeight,
+        dpr: window.devicePixelRatio,
+      },
+    };
     for (const s of sels) {
       const el = document.querySelector(s);
       if (!el) { out[s] = null; continue; }

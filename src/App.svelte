@@ -48,8 +48,16 @@
   ];
   const CLEANUP_ENGINES = [
     { id: "gemini", label: "Gemini" },
-    { id: "openai-compatible", label: "OpenAI-compatible (OpenAI / Groq / local)" },
+    { id: "groq", label: "Groq (rapide)" },
+    { id: "openai", label: "OpenAI" },
+    { id: "openai-compatible", label: "OpenAI-compatible (local…)" },
   ];
+  const CLEANUP_MODEL_PLACEHOLDER: Record<string, string> = {
+    gemini: "gemini-2.5-flash",
+    groq: "llama-3.3-70b-versatile",
+    openai: "gpt-4o-mini",
+    "openai-compatible": "nom du modèle",
+  };
   const MODEL_PLACEHOLDER: Record<string, string> = {
     gemini: "gemini-2.5-flash-native-audio-latest",
     openai: "whisper-1",
@@ -369,6 +377,12 @@
             placeholder={hasKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
           />
         </label>
+        {#if provider === "gemini" && apiKey.startsWith("AQ.")}
+          <p class="warn">
+            ⚠ Ceci ressemble à un jeton temporaire (Live) qui expire vite. Utilise une clé
+            API AI Studio (commence par « AIza ») : aistudio.google.com/apikey
+          </p>
+        {/if}
         {#if hasKey}
           <button class="link" onclick={clearKey}>Supprimer la clé enregistrée</button>
         {/if}
@@ -419,22 +433,22 @@
           <input
             type="text"
             bind:value={settings.cleanup_model}
-            placeholder={cleanupProvider === "gemini"
-              ? "gemini-2.5-flash"
-              : "ex. llama-3.3-70b-versatile"}
+            placeholder={CLEANUP_MODEL_PLACEHOLDER[cleanupProvider] ?? "défaut"}
           />
         </label>
         {#if cleanupProvider === "gemini"}
           <p class="hint">Utilise la clé Gemini configurée plus haut.</p>
         {:else}
-          <label class="field">
-            <span>URL de base</span>
-            <input
-              type="text"
-              bind:value={settings.cleanup_base_url}
-              placeholder="https://api.groq.com/openai/v1"
-            />
-          </label>
+          {#if cleanupProvider === "openai-compatible"}
+            <label class="field">
+              <span>URL de base</span>
+              <input
+                type="text"
+                bind:value={settings.cleanup_base_url}
+                placeholder="http://localhost:8000/v1"
+              />
+            </label>
+          {/if}
           <label class="field">
             <span>Clé API nettoyage {hasCleanupKey ? "· enregistrée ✓" : ""}</span>
             <input
@@ -668,15 +682,18 @@
     transform: scale(1.06);
   }
   .big-mic.on {
-    box-shadow: 0 10px 28px rgba(248, 113, 113, 0.5);
-    animation: pulse 1.5s ease-out infinite;
+    box-shadow: 0 8px 26px rgba(248, 113, 113, 0.55);
+    /* transform/opacity animation is GPU-composited — avoids the box-shadow
+       repaint flicker seen on XWayland. */
+    animation: pulse 1.4s ease-in-out infinite;
   }
   @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.55);
-    }
+    0%,
     100% {
-      box-shadow: 0 0 0 24px rgba(248, 113, 113, 0);
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.06);
     }
   }
   .transcript {
@@ -837,6 +854,12 @@
   .hint {
     font-size: 12px;
     color: var(--fg-dim);
+    margin: -4px 0 10px;
+  }
+  .warn {
+    font-size: 12px;
+    color: #fbbf24;
+    line-height: 1.45;
     margin: -4px 0 10px;
   }
   .settings-actions {
