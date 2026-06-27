@@ -274,7 +274,9 @@ impl LinearResampler {
             out.push((a * (1.0 - frac) + b * frac) as f32);
             self.read_pos += self.step;
         }
-        let consumed = self.read_pos as usize;
+        // The final step can push read_pos past the buffer end; clamp so the
+        // drain range is always valid (avoids an out-of-range slice panic).
+        let consumed = (self.read_pos as usize).min(self.buf.len());
         if consumed > 0 {
             self.buf.drain(0..consumed);
             self.read_pos -= consumed as f64;

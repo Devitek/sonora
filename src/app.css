@@ -1,17 +1,17 @@
 :root {
-  --bg: rgba(17, 18, 24, 0.92);
-  --bg-solid: #111218;
-  --panel: rgba(255, 255, 255, 0.04);
-  --border: rgba(255, 255, 255, 0.08);
-  --fg: #e7e9f0;
-  --fg-dim: #9aa0ad;
-  --accent: #818cf8;
+  --bg: rgba(15, 16, 22, 0.97);
+  --bg-solid: #0f1016;
+  --panel: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.12);
+  --fg: #f2f3f7;
+  --fg-dim: #b3b9c6;
+  --accent: #a5b4fc;
   --accent-strong: #4f46e5;
   --danger: #f87171;
   --ok: #34d399;
 
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
 }

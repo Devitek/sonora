@@ -307,15 +307,21 @@
 
   .body {
     flex: 1;
-    padding: 6px 14px 10px;
+    padding: 8px 16px 12px;
     overflow-y: auto;
-    line-height: 1.5;
+    line-height: 1.55;
+    display: flex;
+    flex-direction: column;
   }
   .placeholder {
     color: var(--fg-dim);
+    margin: auto;
+    text-align: center;
+    font-size: 15px;
+    max-width: 28ch;
   }
   .transcript {
-    font-size: 15px;
+    font-size: 17px;
   }
   .final {
     color: var(--fg);
@@ -400,6 +406,7 @@
     gap: 10px;
     padding: 10px 12px;
     border-top: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.25);
   }
   .meter {
     flex: 1;
