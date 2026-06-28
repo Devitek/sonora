@@ -100,16 +100,18 @@ Ouvrez le menu **☰ → Réglages** :
 ## Barre flottante sous Linux (Hyprland)
 
 Sonora est une fenêtre **transparente, sans décorations, sans focus**. Sous un compositeur
-tuilant comme Hyprland, faites-la flotter et bindez le raccourci global :
+tuilant comme Hyprland, faites-la flotter et bindez le raccourci global. Syntaxe pour les
+versions récentes de Hyprland (sélecteur `match:`) :
 
 ```ini
-windowrule = float,          title:^(Sonora)$
-windowrule = noborder,       title:^(Sonora)$
-windowrule = noshadow,       title:^(Sonora)$
-windowrule = norounding,     title:^(Sonora)$
-windowrule = pin,            title:^(Sonora)$
-windowrule = noinitialfocus, title:^(Sonora)$
-windowrule = move 50%-240 40, title:^(Sonora)$
+windowrule = float on,            match:title ^(Sonora)$
+windowrule = move (monitor_w/2)-240 40, match:title ^(Sonora)$
+windowrule = border_size 0,       match:title ^(Sonora)$
+windowrule = no_shadow on,        match:title ^(Sonora)$
+windowrule = rounding 0,          match:title ^(Sonora)$
+windowrule = no_blur on,          match:title ^(Sonora)$
+windowrule = pin on,              match:title ^(Sonora)$
+windowrule = no_initial_focus on, match:title ^(Sonora)$
 
 # Push-to-talk : lance une 2ᵉ instance qui transmet l'action à celle en cours (single-instance)
 bind = SUPER, V, exec, sonora toggle
@@ -122,7 +124,7 @@ bind = SUPER, V, exec, sonora toggle
 - **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) : *Actions →
   Release → Run workflow* avec un bump **semver** (patch/minor/major) → versionne, tague
   `vX.Y.Z`, et publie les binaires **Linux** (`.AppImage`, `.deb`), **macOS** (`.dmg`,
-  Apple Silicon + Intel) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
+  Apple Silicon) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
 
 ## Marque
 
