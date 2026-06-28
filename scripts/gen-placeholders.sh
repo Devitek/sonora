@@ -68,9 +68,9 @@ gen() {
   echo "wrote $out"
 }
 
-gen "$OUT_DIR/hero.png"        "Capture d'écran à venir"     "assets/img/hero.png"      wave
-gen "$OUT_DIR/settings.png"    "Panneau Réglages — à venir"  "assets/img/settings.png"  wave
-gen "$OUT_DIR/docs-reglages.png" "Réglages de Sonora — à venir" "assets/img/docs-reglages.png" wave
-gen "$OUT_DIR/demo-poster.png" "Démo vidéo — à venir"        "assets/img/demo.mp4"      play
+# Note: hero.png / settings.png / docs-reglages.png are REAL UI captures produced
+# by scripts/screenshots.sh — don't regenerate them here (it would clobber them).
+# Only the demo poster stays a placeholder until a real demo.mp4 is provided.
+gen "$OUT_DIR/demo-poster.png" "Démo vidéo — à venir" "assets/img/demo.mp4" play
 
 echo "Done."

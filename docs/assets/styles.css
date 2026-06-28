@@ -645,6 +645,11 @@ kbd {
   color: var(--muted);
   font-size: 14px;
 }
+/* Tall portrait captures (e.g. the settings panel): keep them readable, not blown up */
+.content figure.portrait .shot {
+  max-width: 420px;
+  margin: 0 auto;
+}
 
 /* tables inside docs */
 .content table {

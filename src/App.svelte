@@ -140,13 +140,64 @@
     requestAnimationFrame(measureAndResize);
   });
 
+  /** Seed a realistic UI state for documentation screenshots (see onMount). */
+  function seedShot(mode: string) {
+    theme = "dark";
+    configured = true;
+    if (mode === "bar") {
+      recState = "listening";
+      level = 0.5;
+      finals = ["Bonjour, ceci est une démonstration de Sonora,"];
+      partial = "le texte s'écrit en temps réel.";
+      return;
+    }
+    if (mode === "result") {
+      recState = "idle";
+      autoType = true;
+      finals = ["Réécris l'intro, version plus concise."];
+      partial = "";
+      return;
+    }
+    // settings / history: open the dropdown with realistic config + data
+    autoType = true;
+    hasKey = true;
+    hasCleanupKey = true;
+    settings = {
+      provider: "gemini",
+      language: "fr",
+      cleanup_enabled: true,
+      cleanup_provider: "gemini",
+      prompts: [
+        { id: "p1", name: "Reformuler — pro", prompt: "Réécris ce texte dans un ton professionnel et concis." },
+        { id: "p2", name: "Commande terminal", prompt: "Convertis cette demande en une commande shell." },
+      ],
+    };
+    menuOpen = true;
+    menuTab = mode === "history" ? "history" : "settings";
+    if (mode === "history") {
+      history = [
+        { id: "h1", text: "Peux-tu préparer un résumé de la réunion de ce matin ?", createdAt: Date.now() - 1000 * 60 * 7 },
+        { id: "h2", text: "Ajouter une section FAQ à la documentation du projet.", createdAt: Date.now() - 1000 * 60 * 60 * 3 },
+        { id: "h3", text: "Réserve une salle pour la rétro de vendredi après-midi.", createdAt: Date.now() - 1000 * 60 * 60 * 27 },
+      ];
+    }
+  }
+
   onMount(() => {
-    void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
-    void loadHistory().then((h) => (history = h));
-    void getAutoType().then((v) => (autoType = v));
-    void getTheme().then((v) => (theme = v));
-    void loadSettings();
-    void refreshConfigured();
+    // Docs screenshots: `?shot=bar|result|settings|history` renders the real UI
+    // in a fixed, realistic state for captures. Completely inert without the
+    // query param, so it never affects the shipped app.
+    const shotMode = new URLSearchParams(location.search).get("shot");
+    if (shotMode) seedShot(shotMode);
+
+    if (!shotMode) {
+      void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));
+      void loadHistory().then((h) => (history = h));
+      void getAutoType().then((v) => (autoType = v));
+      void getTheme().then((v) => (theme = v));
+      void loadSettings();
+      void refreshConfigured();
+    }
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     systemDark = mq.matches;
