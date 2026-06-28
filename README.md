@@ -1,5 +1,9 @@
 # transcript — refonte « barre flottante »
 
+<!-- Remplacez <owner> par votre compte / organisation GitHub. -->
+[![CI](https://github.com/<owner>/transcript/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/transcript/actions/workflows/ci.yml)
+[![Release](https://github.com/<owner>/transcript/actions/workflows/release.yml/badge.svg)](https://github.com/<owner>/transcript/actions/workflows/release.yml)
+
 Portage du design validé dans l'app Svelte 5 + Tauri. **Aucune logique métier modifiée** :
 providers, clés API, nettoyage, historique, saisie auto au curseur, hotkey global / tray,
 événements backend — tout est préservé. Le design et le thème changent, plus un nouveau
@@ -51,3 +55,16 @@ Aucune nouvelle dépendance. `git diff` recommandé avant commit.
   fait ici pour rester sûr).
 - **Raccourci** : aucun libellé de hotkey n'est affiché dans la barre (le binding réel n'est pas
   connu côté front). Ajoutez un `<kbd>` dans `.bar-text` si vous voulez l'indiquer.
+
+## TODO / Roadmap
+
+- [ ] **Signature des binaires** (retirer les avertissements Gatekeeper / SmartScreen sur les
+  builds publiés par la CI) :
+  - **macOS** : certificat « Developer ID Application » + **notarisation** (`notarytool`). À
+    câbler dans `tauri-action` via les secrets `APPLE_CERTIFICATE`,
+    `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`,
+    `APPLE_TEAM_ID`.
+  - **Windows** : certificat **Authenticode** (code signing) via `WINDOWS_CERTIFICATE` +
+    `WINDOWS_CERTIFICATE_PASSWORD`, ou **Azure Trusted Signing**.
+  - Nécessite des certificats payants (Apple Developer Program / AC Windows) ; à ajouter quand
+    disponibles, sans changer le reste du pipeline.
