@@ -37,7 +37,10 @@ pub async fn run_session(app: AppHandle, cfg: ProviderConfig, mut rx: UnboundedR
                     }
                     Ok(_) => {
                         // Empty result — clear the "…" placeholder.
-                        BackendEvent::Partial { text: String::new() }.emit(&app);
+                        BackendEvent::Partial {
+                            text: String::new(),
+                        }
+                        .emit(&app);
                     }
                     Err(e) => {
                         eprintln!("[{}] {e}", cfg.kind);
@@ -59,7 +62,11 @@ async fn transcribe(
     pcm: &[i16],
 ) -> Result<String, String> {
     let wav = pcm_to_wav(pcm, TARGET_RATE);
-    let base = cfg.base_url.as_deref().unwrap_or_default().trim_end_matches('/');
+    let base = cfg
+        .base_url
+        .as_deref()
+        .unwrap_or_default()
+        .trim_end_matches('/');
     let url = format!("{base}/audio/transcriptions");
 
     let part = reqwest::multipart::Part::bytes(wav)

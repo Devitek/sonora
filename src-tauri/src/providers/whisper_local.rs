@@ -48,7 +48,10 @@ pub async fn run_session(app: AppHandle, cfg: ProviderConfig, mut rx: UnboundedR
                     Ok(Ok(text)) if !text.is_empty() => {
                         BackendEvent::Final { text }.emit(&app);
                     }
-                    Ok(Ok(_)) => BackendEvent::Partial { text: String::new() }.emit(&app),
+                    Ok(Ok(_)) => BackendEvent::Partial {
+                        text: String::new(),
+                    }
+                    .emit(&app),
                     Ok(Err(e)) => {
                         eprintln!("[whisper-local] {e}");
                         BackendEvent::Error { message: e }.emit(&app);

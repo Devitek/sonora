@@ -257,7 +257,9 @@ pub fn run() {
 /// are expected on Wayland and only logged.
 #[cfg(desktop)]
 fn register_global_shortcut(app: &AppHandle) {
-    use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+    use tauri_plugin_global_shortcut::{
+        Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
+    };
 
     let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space);
     let res = app
@@ -276,7 +278,13 @@ fn register_global_shortcut(app: &AppHandle) {
 fn register_global_shortcut(_app: &AppHandle) {}
 
 fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
-    let toggle_i = MenuItem::with_id(app, "toggle", "Démarrer / arrêter la dictée", true, None::<&str>)?;
+    let toggle_i = MenuItem::with_id(
+        app,
+        "toggle",
+        "Démarrer / arrêter la dictée",
+        true,
+        None::<&str>,
+    )?;
     let show_i = MenuItem::with_id(app, "show", "Afficher", true, None::<&str>)?;
     let quit_i = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&toggle_i, &show_i, &quit_i])?;

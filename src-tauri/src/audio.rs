@@ -115,7 +115,11 @@ fn fail(app: &AppHandle, running: &AtomicBool, msg: impl Into<String>) {
 fn capture_loop(tx: Sender<Msg>, running: Arc<AtomicBool>, app: AppHandle) {
     let host = cpal::default_host();
     let Some(device) = host.default_input_device() else {
-        fail(&app, &running, "Aucun micro détecté (périphérique d'entrée).");
+        fail(
+            &app,
+            &running,
+            "Aucun micro détecté (périphérique d'entrée).",
+        );
         return;
     };
     let supported = match device.default_input_config() {

@@ -27,11 +27,7 @@ const SEND_THRESHOLD: usize = 1600;
 /// How long to keep reading trailing transcription after the user stops.
 const FINALIZE_GRACE: Duration = Duration::from_millis(1500);
 
-pub async fn run_session(
-    app: AppHandle,
-    cfg: ProviderConfig,
-    mut rx: UnboundedReceiver<AudioMsg>,
-) {
+pub async fn run_session(app: AppHandle, cfg: ProviderConfig, mut rx: UnboundedReceiver<AudioMsg>) {
     let url = format!("{WS_BASE}?key={}", cfg.api_key);
 
     let (ws, _resp) = match connect_async(url.as_str()).await {
@@ -144,10 +140,7 @@ pub async fn run_session(
 
     // ---- finalize phase: drain trailing transcription for a short grace window ----
     let deadline = Instant::now() + FINALIZE_GRACE;
-    loop {
-        let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
-            break;
-        };
+    while let Some(remaining) = deadline.checked_duration_since(Instant::now()) {
         if remaining.is_zero() {
             break;
         }
@@ -199,7 +192,11 @@ fn process_server(txt: &str, app: &AppHandle, transcript: &mut String, ready: &m
             }
             .emit(app);
         }
-        if sc.get("turnComplete").and_then(Value::as_bool).unwrap_or(false) {
+        if sc
+            .get("turnComplete")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
             let final_text = transcript.trim().to_string();
             if !final_text.is_empty() {
                 BackendEvent::Final { text: final_text }.emit(app);
