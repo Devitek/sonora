@@ -231,10 +231,14 @@ pre {
   box-shadow: var(--shadow);
   overflow: hidden;
 }
-.shot img {
+.shot img,
+.shot video {
   display: block;
   width: 100%;
   height: auto;
+}
+.shot video {
+  background: #000;
 }
 /* Placeholder shown until a real screenshot replaces it */
 .shot.placeholder {
@@ -629,6 +633,17 @@ kbd {
 
 .anchor-h {
   scroll-margin-top: 84px;
+}
+
+/* figures (docs screenshots) */
+.content figure {
+  margin: 0 0 22px;
+}
+.content figcaption {
+  margin-top: 10px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 /* tables inside docs */
