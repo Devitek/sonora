@@ -50,7 +50,7 @@ async fn complete(config_dir: &Path, system: &str, text: &str) -> Result<String,
                 .ok_or("Clé Gemini absente (⚙ → moteur de reformulation).")?;
             gemini_generate(&client, &model, &key, system, text).await?
         }
-        "openai-compatible" | "openai" | "groq" => {
+        "openai-compatible" | "openai" | "groq" | "mistral" => {
             let base = nonempty(s.cleanup_base_url)
                 .or_else(|| default_base(&provider))
                 .ok_or("Définis l'URL de base du moteur de reformulation (⚙).")?;
@@ -58,7 +58,9 @@ async fn complete(config_dir: &Path, system: &str, text: &str) -> Result<String,
                 .or_else(|| default_model(&provider))
                 .ok_or("Définis le modèle du moteur de reformulation (⚙).")?;
             let key = secrets::get_api_key(config_dir, "cleanup")
-                .or_else(|| first_env(&["CLEANUP_API_KEY", "TRANSCRIPT_API_KEY"]))
+                .or_else(|| {
+                    first_env(&["CLEANUP_API_KEY", "MISTRAL_API_KEY", "TRANSCRIPT_API_KEY"])
+                })
                 .unwrap_or_default();
             openai_chat(&client, &base, &model, &key, system, text).await?
         }
@@ -166,6 +168,7 @@ fn default_base(provider: &str) -> Option<String> {
     match provider {
         "openai" => Some("https://api.openai.com/v1".into()),
         "groq" => Some("https://api.groq.com/openai/v1".into()),
+        "mistral" => Some("https://api.mistral.ai/v1".into()),
         _ => None,
     }
 }
@@ -174,6 +177,7 @@ fn default_model(provider: &str) -> Option<String> {
     match provider {
         "openai" => Some("gpt-4o-mini".into()),
         "groq" => Some("llama-3.3-70b-versatile".into()),
+        "mistral" => Some("mistral-small-latest".into()),
         _ => None, // generic openai-compatible: the user must pick a model
     }
 }

@@ -89,6 +89,13 @@ impl ProviderConfig {
                 language,
                 kind,
             },
+            "mistral" => Self {
+                model: model_override.unwrap_or_else(|| "voxtral-mini-latest".into()),
+                api_key: key_or(&["MISTRAL_API_KEY", "TRANSCRIPT_API_KEY"]).ok_or(no_key)?,
+                base_url: Some(base_override.unwrap_or_else(|| "https://api.mistral.ai/v1".into())),
+                language,
+                kind,
+            },
             "openai-compatible" => Self {
                 base_url: Some(base_override.ok_or("Définis l'URL de base dans les réglages.")?),
                 model: model_override.ok_or("Définis le modèle dans les réglages.")?,
@@ -160,7 +167,7 @@ impl SessionController {
             "gemini" => {
                 tauri::async_runtime::spawn(gemini::run_session(app, cfg, rx));
             }
-            "openai" | "groq" | "openai-compatible" => {
+            "openai" | "groq" | "openai-compatible" | "mistral" => {
                 tauri::async_runtime::spawn(openai_compat::run_session(app, cfg, rx));
             }
             "whisper-local" => {

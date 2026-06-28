@@ -73,9 +73,10 @@ async fn transcribe(
         .file_name("audio.wav")
         .mime_str("audio/wav")
         .map_err(|e| e.to_string())?;
+    // No `response_format` field: OpenAI/Groq default to JSON ({text}) and
+    // Mistral (Voxtral) doesn't document it — omitting keeps all three working.
     let mut form = reqwest::multipart::Form::new()
         .text("model", cfg.model.clone())
-        .text("response_format", "json")
         .part("file", part);
     if let Some(lang) = &cfg.language {
         form = form.text("language", lang.clone());

@@ -63,6 +63,7 @@
 
   const PROVIDERS = [
     { id: "gemini", label: "Gemini Live (streaming)" },
+    { id: "mistral", label: "Mistral (Voxtral)" },
     { id: "openai", label: "OpenAI Whisper" },
     { id: "groq", label: "Groq Whisper (rapide)" },
     { id: "openai-compatible", label: "OpenAI-compatible" },
@@ -70,18 +71,21 @@
   ];
   const CLEANUP_ENGINES = [
     { id: "gemini", label: "Gemini" },
+    { id: "mistral", label: "Mistral" },
     { id: "groq", label: "Groq (rapide)" },
     { id: "openai", label: "OpenAI" },
     { id: "openai-compatible", label: "OpenAI-compatible (local…)" },
   ];
   const CLEANUP_MODEL_PLACEHOLDER: Record<string, string> = {
     gemini: "gemini-2.5-flash",
+    mistral: "mistral-small-latest",
     groq: "llama-3.3-70b-versatile",
     openai: "gpt-4o-mini",
     "openai-compatible": "nom du modèle",
   };
   const MODEL_PLACEHOLDER: Record<string, string> = {
     gemini: "gemini-2.5-flash-native-audio-latest",
+    mistral: "voxtral-mini-latest",
     openai: "whisper-1",
     groq: "whisper-large-v3",
     "openai-compatible": "whisper-1",
@@ -89,7 +93,7 @@
   };
   const provider = $derived(settings.provider ?? "gemini");
   const needsKey = $derived(
-    ["gemini", "openai", "groq", "openai-compatible"].includes(provider),
+    ["gemini", "mistral", "openai", "groq", "openai-compatible"].includes(provider),
   );
   const cleanupEnabled = $derived(settings.cleanup_enabled === true);
   const cleanupProvider = $derived(settings.cleanup_provider ?? "gemini");
