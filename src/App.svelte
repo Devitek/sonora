@@ -209,12 +209,17 @@
     const onMq = (e: MediaQueryListEvent) => (systemDark = e.matches);
     mq.addEventListener("change", onMq);
 
-    // Spotlight-style dismiss: Escape closes the menu, or hides the bar.
+    // Spotlight-style dismiss, made non-destructive: Escape closes the prompt
+    // menu, then the settings panel. It only hides the whole bar when it is idle
+    // and empty — never while there's a transcript to act on (apply a prompt,
+    // copy…), a live session, or an error to read. This prevents the bar from
+    // vanishing when Escape is pressed while the floating window happens to hold
+    // focus (e.g. Hyprland focus-follows-mouse).
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (promptMenuOpen) promptMenuOpen = false;
       else if (menuOpen) menuOpen = false;
-      else void hideWindow();
+      else if (!hasText && !listening && !cleaning && !errorMsg) void hideWindow();
     };
     window.addEventListener("keydown", onKey);
 
