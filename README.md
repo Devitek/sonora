@@ -9,9 +9,8 @@
 </p>
 
 <p align="center">
-  <!-- Remplacez OWNER par votre compte / organisation GitHub (et le nom du repo si besoin). -->
-  <a href="https://github.com/OWNER/sonora/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/OWNER/sonora/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/OWNER/sonora/actions/workflows/release.yml"><img alt="Release" src="https://github.com/OWNER/sonora/actions/workflows/release.yml/badge.svg"></a>
+  <a href="https://github.com/Devitek/sonora/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Devitek/sonora/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/Devitek/sonora/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Devitek/sonora/actions/workflows/release.yml/badge.svg"></a>
   <img alt="platform" src="https://img.shields.io/badge/macOS%20·%20Windows%20·%20Linux-0a0b12?style=flat-square">
   <img alt="built with" src="https://img.shields.io/badge/Tauri%20·%20Svelte%205%20·%20Rust-7C5CFF?style=flat-square">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-22D3EE?style=flat-square">
