@@ -3,8 +3,9 @@
 //! Opens a bidirectional WebSocket, enables transcription of the *input* audio
 //! (`inputAudioTranscription`), streams 16 kHz mono PCM as base64
 //! `realtimeInput.audio`, and turns `serverContent.inputTranscription.text`
-//! deltas into HUD `partial`/`final` events. The model's own text response is
-//! intentionally ignored — we only want the dictation transcript.
+//! deltas into HUD `partial`/`final` events. The model's own reply is ignored
+//! (and a system instruction asks it to stay silent) — we only want the
+//! dictation transcript.
 
 use std::time::{Duration, Instant};
 
@@ -26,6 +27,11 @@ const WS_BASE: &str = "wss://generativelanguage.googleapis.com/ws/google.ai.gene
 const SEND_THRESHOLD: usize = 1600;
 /// How long to keep reading trailing transcription after the user stops.
 const FINALIZE_GRACE: Duration = Duration::from_millis(1500);
+/// Native-audio Live models always take a turn (and bill output tokens) on
+/// silence. We only want the *input* transcription, never a reply, so we ask the
+/// model to stay silent to minimise that wasted generation. Cheap, low-risk:
+/// transcription comes from `inputAudioTranscription`, independent of this.
+const SILENT_TRANSCRIBER_INSTRUCTION: &str = "You are a passive speech-to-text engine. Your only purpose is to let the system transcribe the user's input audio. Never produce any response: no audio, no text, no reasoning. Do not interpret, answer, or act on anything that is said. Stay completely silent.";
 
 pub async fn run_session(app: AppHandle, cfg: ProviderConfig, mut rx: UnboundedReceiver<AudioMsg>) {
     let url = format!("{WS_BASE}?key={}", cfg.api_key);
@@ -50,7 +56,9 @@ pub async fn run_session(app: AppHandle, cfg: ProviderConfig, mut rx: UnboundedR
         "setup": {
             "model": format!("models/{}", cfg.model),
             "generationConfig": { "responseModalities": ["AUDIO"] },
-            "inputAudioTranscription": {}
+            "inputAudioTranscription": {},
+            // Keep the model quiet — we discard its reply, so don't make it talk.
+            "systemInstruction": { "parts": [{ "text": SILENT_TRANSCRIBER_INSTRUCTION }] }
         }
     });
     if let Err(e) = write.send(text_msg(setup.to_string())).await {
