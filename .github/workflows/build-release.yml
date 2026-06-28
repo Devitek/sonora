@@ -20,10 +20,10 @@ jobs:
         include:
           - platform: ubuntu-22.04 # Linux x86_64 (.deb, .AppImage)
             args: --bundles deb appimage
-          - platform: macos-latest # Apple Silicon (.dmg)
+          - platform: macos-latest # macOS, Apple Silicon (.dmg)
             args: --bundles app dmg
-          - platform: macos-15-intel # Intel (.dmg)
-            args: --bundles app dmg
+          # Intel macOS (macos-15-intel) temporarily dropped: `bun install`
+          # fails to extract @tauri-apps/cli-darwin-x64 on that runner (bun bug).
           - platform: windows-latest # Windows x86_64 (.msi, NSIS .exe)
             args: --bundles msi nsis
     runs-on: ${{ matrix.platform }}
@@ -60,7 +60,16 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install frontend dependencies
-        run: bun install
+        shell: bash
+        # Retry once after clearing the cache: bun occasionally fails to
+        # extract platform-specific tarballs (e.g. @tauri-apps/cli-*) on a
+        # cold runner. A cache clear + retry papers over that flake.
+        run: |
+          bun install || {
+            echo "bun install failed, clearing cache and retrying..."
+            bun pm cache rm || true
+            bun install
+          }
 
       - name: Build & publish
         uses: tauri-apps/tauri-action@v0
