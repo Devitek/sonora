@@ -187,8 +187,13 @@
     // Docs screenshots: `?shot=bar|result|settings|history` renders the real UI
     // in a fixed, realistic state for captures. Completely inert without the
     // query param, so it never affects the shipped app.
-    const shotMode = new URLSearchParams(location.search).get("shot");
-    if (shotMode) seedShot(shotMode);
+    const shotParams = new URLSearchParams(location.search);
+    const shotMode = shotParams.get("shot");
+    if (shotMode) {
+      seedShot(shotMode);
+      const t = shotParams.get("theme");
+      if (t === "light" || t === "dark") theme = t;
+    }
 
     if (!shotMode) {
       void invoke<string>("app_ready").then((v) => console.log("backend ready:", v));

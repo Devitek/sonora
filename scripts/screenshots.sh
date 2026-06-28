@@ -27,25 +27,31 @@ sleep 0.7
 
 export GDK_SCALE=1 GDK_DPI_SCALE=1 GDK_BACKEND=x11
 
-shoot() { # <shot> <w> <h> <settleMs>
-  echo "› rendering shot=$1 (${2}x${3})" >&2
+shoot() { # <name> <url-query> <w> <h> <settleMs>
+  echo "› rendering $1 ($2)" >&2
   xvfb-run -a -s "-screen 0 1400x1200x24 -dpi 96" \
-    gjs scripts/screenshot.js "http://localhost:$PORT/?shot=$1" "$TMP/$1.png" "$2" "$3" "$4"
+    gjs scripts/screenshot.js "http://localhost:$PORT/?$2" "$TMP/$1.png" "$3" "$4" "$5"
 }
 
-shoot bar 760 460 1100
-shoot result 760 320 800
-shoot settings 760 1180 900
+shoot bar       "shot=bar"               760 460  1100
+shoot result    "shot=result"            760 320  800
+shoot settings  "shot=settings"          760 1180 900
+shoot history   "shot=history"           760 1180 900
+shoot bar-light "shot=bar&theme=light"   760 460  1100
 
 # --- compose onto an on-brand backdrop --------------------------------------
-backdrop() { magick -size "$1x$2" "radial-gradient:#171231-#0A0B12" "$3"; }
+DARK="radial-gradient:#171231-#0A0B12"
+LIGHT="radial-gradient:#EEF0FB-#DCE0F0"
+backdrop() { magick -size "$1x$2" "${4:-$DARK}" "$3"; }
 
-# Wide 16:9 product shot: small/wide capture centered on a 1280x720 backdrop.
-compose_wide() { # <capture> <resize-geom> <out>
+# Wide 16:9 product shot: capture centered on a 1280x720 backdrop. The bar UI is
+# narrow (~420px), so we upscale it a bit (flat UI scales cleanly with Lanczos).
+compose_wide() { # <capture> <resize-geom> <out> [gradient]
   magick "$TMP/$1.png" -trim +repage "$TMP/$1-t.png"
-  backdrop 1280 720 "$TMP/bg-$1.png"
+  backdrop 1280 720 "$TMP/bg-$1.png" "${4:-$DARK}"
   magick "$TMP/bg-$1.png" \
-    \( "$TMP/$1-t.png" -resize "$2" \) -gravity center -geometry +0+0 -composite \
+    \( "$TMP/$1-t.png" -filter Lanczos -resize "$2" \) \
+    -gravity center -geometry +0+0 -composite \
     -depth 8 -strip "$3"
   echo "wrote $3" >&2
 }
@@ -64,8 +70,10 @@ compose_tight() { # <capture> <margin> <out>
   echo "wrote $3 (${bw}x${bh})" >&2
 }
 
-compose_wide  bar    "880x520>" "$OUT/hero.png"
-compose_wide  result "880x420>" "$OUT/settings.png"
-compose_tight settings 56       "$OUT/docs-reglages.png"
+compose_wide  bar       "780x560" "$OUT/hero.png"
+compose_wide  result    "760x520" "$OUT/settings.png"
+compose_wide  bar-light "760x520" "$OUT/bar-light.png" "$LIGHT"
+compose_tight settings  56          "$OUT/docs-reglages.png"
+compose_tight history   56          "$OUT/history.png"
 
-echo "Done. Captured: hero.png (bar), settings.png (result), docs-reglages.png (settings)." >&2
+echo "Done. Captured: hero.png (bar), settings.png (result), bar-light.png (light theme), docs-reglages.png (settings), history.png (history)." >&2
