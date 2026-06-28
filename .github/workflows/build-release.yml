@@ -1,0 +1,79 @@
+name: build-release
+
+# Reusable: build the Tauri app on each OS and publish the binaries to the
+# GitHub Release for `tag` (created/updated by tauri-action across the matrix).
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag to build & release (e.g. v0.2.0)
+        required: true
+        type: string
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04 # Linux x86_64 (.deb, .AppImage)
+            args: --bundles deb appimage
+          - platform: macos-latest # Apple Silicon (.dmg)
+            args: --bundles app dmg
+          - platform: macos-15-intel # Intel (.dmg)
+            args: --bundles app dmg
+          - platform: windows-latest # Windows x86_64 (.msi, NSIS .exe)
+            args: --bundles msi nsis
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libdbus-1-dev \
+            libasound2-dev \
+            cmake \
+            build-essential \
+            file
+
+      - name: Ensure cmake (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        run: cmake --version || brew install cmake
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - name: Build & publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ inputs.tag }}
+          releaseName: transcript ${{ inputs.tag }}
+          releaseBody: |
+            Téléchargez l'installeur correspondant à votre OS dans les *Assets* ci-dessous :
+            - **Linux** : `.AppImage` (portable) ou `.deb`
+            - **macOS** : `.dmg` (Apple Silicon = `aarch64`, Intel = `x64`) — build non signé
+            - **Windows** : `.msi` ou le setup NSIS `.exe`
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
