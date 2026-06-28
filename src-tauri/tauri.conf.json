@@ -48,6 +48,9 @@
       "appimage": {
         "bundleMediaFramework": false
       }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
     }
   }
 }
