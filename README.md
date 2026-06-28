@@ -16,6 +16,10 @@
   <img alt="license" src="https://img.shields.io/badge/license-MIT-22D3EE?style=flat-square">
 </p>
 
+<p align="center">
+  <strong><a href="https://devitek.github.io/sonora/">🌐 Site &amp; documentation</a></strong>
+</p>
+
 > 🤖 **Projet open source, intégralement construit avec une IA — et c'est assumé.**
 > Sonora a été conçu et codé de bout en bout par un agent IA (architecture, backend
 > Rust/Tauri, frontend Svelte 5, CI/CD, design de marque), en binôme avec un humain qui

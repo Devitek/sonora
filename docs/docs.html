@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documentation — Sonora</title>
+    <meta
+      name="description"
+      content="Guide d'installation, de configuration et d'utilisation de Sonora : moteurs de transcription, clés API, raccourci global, Whisper local, dépannage."
+    />
+    <meta name="theme-color" content="#0A0B12" />
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <!-- ===================== NAV ===================== -->
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="index.html">
+          <img src="assets/logo.svg" alt="" />
+          Sonora
+        </a>
+        <nav class="nav-links">
+          <a href="index.html#features" class="hide-sm">Fonctionnalités</a>
+          <a href="index.html#download" class="hide-sm">Télécharger</a>
+          <a href="docs.html">Documentation</a>
+          <a href="https://github.com/Devitek/sonora" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="docs">
+        <!-- ===================== TOC ===================== -->
+        <aside class="toc">
+          <strong>Démarrer</strong>
+          <a href="#intro">Présentation</a>
+          <a href="#installation">Installation</a>
+          <a href="#premier-lancement">Premier lancement</a>
+          <strong>Configurer</strong>
+          <a href="#moteurs">Choisir un moteur</a>
+          <a href="#cles-api">Obtenir une clé API</a>
+          <a href="#reglages">Tous les réglages</a>
+          <a href="#whisper-local">Whisper local (hors-ligne)</a>
+          <strong>Utiliser</strong>
+          <a href="#utilisation">Dicter au quotidien</a>
+          <a href="#reformulation">Nettoyage &amp; reformulation</a>
+          <a href="#historique">Historique</a>
+          <a href="#linux">Linux &amp; Hyprland</a>
+          <strong>Aller plus loin</strong>
+          <a href="#confidentialite">Confidentialité &amp; sécurité</a>
+          <a href="#depannage">Dépannage</a>
+          <a href="#build">Compiler depuis les sources</a>
+        </aside>
+
+        <!-- ===================== CONTENT ===================== -->
+        <main class="content">
+          <h1>Documentation</h1>
+          <p class="sub">Tout pour installer, configurer et maîtriser Sonora — en quelques minutes.</p>
+
+          <!-- INTRO -->
+          <h2 id="intro" class="anchor-h">Présentation</h2>
+          <p>
+            <strong>Sonora</strong> est une barre flottante de dictée vocale pour macOS, Windows et Linux.
+            Vous appuyez sur un raccourci, vous parlez, et le texte transcrit est
+            <strong>tapé directement à l'endroit de votre curseur</strong> (ou copié au presse-papier).
+          </p>
+          <p>
+            Sonora ne transcrit pas lui-même : il s'appuie sur le <strong>moteur de votre choix</strong>.
+            Selon vos priorités (vitesse, qualité, confidentialité, coût), branchez Gemini, Mistral, OpenAI,
+            Groq, n'importe quel service compatible OpenAI, ou un modèle <strong>Whisper 100 % local</strong>
+            qui fonctionne sans connexion.
+          </p>
+          <div class="note tip">
+            <strong>En bref :</strong> installez → choisissez un moteur + collez une clé → appuyez sur le
+            raccourci et dictez.
+          </div>
+
+          <!-- INSTALLATION -->
+          <h2 id="installation" class="anchor-h">Installation</h2>
+          <p>
+            Récupérez la dernière version sur la page
+            <a href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">GitHub Releases</a>,
+            puis suivez la procédure pour votre système.
+          </p>
+
+          <h3>🍎 macOS (Apple Silicon)</h3>
+          <ol>
+            <li>Téléchargez le fichier <code>Sonora_x.y.z_aarch64.dmg</code>.</li>
+            <li>Ouvrez le <code>.dmg</code> et glissez <strong>Sonora</strong> dans <code>Applications</code>.</li>
+            <li>
+              Au premier lancement, macOS peut afficher « <em>développeur non identifié</em> » (l'app n'est pas
+              encore signée par Apple). Faites un <strong>clic droit → Ouvrir</strong>, puis confirmez.
+            </li>
+            <li>Autorisez l'accès au <strong>micro</strong> (et à l'<strong>Accessibilité</strong> pour le collage au curseur) quand macOS le demande.</li>
+          </ol>
+          <div class="note">
+            Si le clic droit ne suffit pas, vous pouvez lever la mise en quarantaine :
+            <pre><code>xattr -dr com.apple.quarantine /Applications/Sonora.app</code></pre>
+          </div>
+
+          <h3>🪟 Windows</h3>
+          <ol>
+            <li>Téléchargez l'installeur <code>Sonora_x.y.z_x64-setup.exe</code> (ou le <code>.msi</code>).</li>
+            <li>Lancez-le. SmartScreen peut prévenir d'un éditeur inconnu : <strong>Informations complémentaires → Exécuter quand même</strong>.</li>
+            <li>Suivez l'assistant, puis lancez Sonora depuis le menu Démarrer.</li>
+          </ol>
+
+          <h3>🐧 Linux</h3>
+          <p><strong>AppImage</strong> (universel) :</p>
+          <pre><code>chmod +x Sonora_x.y.z_amd64.AppImage
+./Sonora_x.y.z_amd64.AppImage</code></pre>
+          <p><strong>Debian / Ubuntu</strong> (<code>.deb</code>) :</p>
+          <pre><code>sudo apt install ./Sonora_x.y.z_amd64.deb</code></pre>
+          <div class="note">
+            Pour <strong>taper le texte au curseur</strong> sous Linux, Sonora utilise <code>wtype</code>
+            (Wayland) ou <code>xdotool</code> (X11). Installez celui qui correspond à votre session :
+            <pre><code># Wayland
+sudo apt install wtype
+# X11
+sudo apt install xdotool</code></pre>
+            Sous Hyprland, voyez la section <a href="#linux">Linux &amp; Hyprland</a>.
+          </div>
+
+          <!-- PREMIER LANCEMENT -->
+          <h2 id="premier-lancement" class="anchor-h">Premier lancement</h2>
+          <p>
+            Au démarrage, Sonora affiche un court <strong>onboarding</strong> puis sa barre flottante. Une
+            icône apparaît aussi dans la <strong>zone de notification (tray)</strong> pour afficher/masquer la
+            barre et quitter l'application.
+          </p>
+          <ol>
+            <li>Ouvrez le menu <strong>☰ → Réglages</strong>.</li>
+            <li>Choisissez un <strong>fournisseur</strong> de transcription.</li>
+            <li>Collez la <strong>clé API</strong> correspondante (voir <a href="#cles-api">ci-dessous</a>).</li>
+            <li>Fermez les réglages, appuyez sur le bouton micro (ou le raccourci) et dictez une phrase.</li>
+          </ol>
+
+          <!-- MOTEURS -->
+          <h2 id="moteurs" class="anchor-h">Choisir un moteur</h2>
+          <p>Chaque moteur a ses forces. Voici comment choisir :</p>
+          <ul>
+            <li><strong>Gemini Live</strong> — la seule option <em>streaming</em> : le texte s'écrit mot à mot pendant que vous parlez. Idéal pour la dictée longue et fluide.</li>
+            <li><strong>Mistral (Voxtral)</strong> — transcription européenne de qualité, par segment.</li>
+            <li><strong>OpenAI Whisper</strong> — la référence Whisper, par segment.</li>
+            <li><strong>Groq Whisper</strong> — Whisper <code>large-v3</code> hébergé sur Groq : très rapide.</li>
+            <li><strong>OpenAI-compatible</strong> — pointez vers n'importe quel endpoint compatible (serveur local, autre fournisseur…) via une URL de base.</li>
+            <li><strong>Whisper local</strong> — 100 % hors-ligne, aucune clé, aucune donnée n'est envoyée. Voir <a href="#whisper-local">la section dédiée</a>.</li>
+          </ul>
+          <div class="note tip">
+            Vous pouvez utiliser un moteur pour la <strong>transcription</strong> et un autre pour la
+            <strong>reformulation</strong> (nettoyage / prompts). Par exemple : Whisper local pour la voix,
+            Gemini pour la mise en forme.
+          </div>
+
+          <!-- CLES API -->
+          <h2 id="cles-api" class="anchor-h">Obtenir une clé API</h2>
+          <p>Créez une clé chez le fournisseur choisi, puis collez-la dans <strong>Réglages</strong>. Elle est stockée dans le trousseau de votre OS.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Fournisseur</th><th>Où créer la clé</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>Gemini</strong></td><td><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></td></tr>
+                <tr><td><strong>Mistral</strong></td><td><a href="https://console.mistral.ai/api-keys" target="_blank" rel="noopener">console.mistral.ai/api-keys</a></td></tr>
+                <tr><td><strong>OpenAI</strong></td><td><a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a></td></tr>
+                <tr><td><strong>Groq</strong></td><td><a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note warn">
+            <strong>Gemini :</strong> utilisez une clé <strong>Google AI Studio</strong> (elle commence par
+            <code>AIza…</code>). Une clé éphémère commençant par <code>AQ.</code> n'est pas une clé d'API
+            valide pour Sonora — l'app vous avertira si vous en collez une.
+          </div>
+
+          <!-- REGLAGES -->
+          <h2 id="reglages" class="anchor-h">Tous les réglages</h2>
+          <p>Le panneau <strong>☰ → Réglages</strong> regroupe :</p>
+          <ul>
+            <li><strong>Fournisseur</strong> — le moteur de transcription.</li>
+            <li><strong>Clé API</strong> — stockée au trousseau (voir <a href="#confidentialite">Confidentialité</a>).</li>
+            <li><strong>Modèle</strong> <em>(optionnel)</em> — pour surcharger le modèle par défaut.</li>
+            <li><strong>Langue</strong> <em>(optionnel)</em> — un indice de langue (ex. <code>fr</code>) pour les moteurs Whisper.</li>
+            <li><strong>URL de base</strong> <em>(optionnel)</em> — pour les endpoints OpenAI-compatible.</li>
+            <li><strong>Chemin du modèle ggml</strong> — pour Whisper local.</li>
+            <li><strong>Nettoyage automatique</strong> — active la passe de reformulation, avec son propre moteur, modèle et prompts.</li>
+          </ul>
+          <p>Valeurs par défaut utiles (surchargées seulement si vous renseignez un champ) :</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Fournisseur</th><th>Modèle par défaut</th><th>URL de base</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Gemini Live</td><td><code>gemini-2.5-flash-native-audio-latest</code></td><td>—</td></tr>
+                <tr><td>Mistral</td><td><code>voxtral-mini-latest</code></td><td><code>https://api.mistral.ai/v1</code></td></tr>
+                <tr><td>OpenAI</td><td>Whisper</td><td><code>https://api.openai.com/v1</code></td></tr>
+                <tr><td>Groq</td><td><code>whisper-large-v3</code></td><td><code>https://api.groq.com/openai/v1</code></td></tr>
+                <tr><td>Nettoyage (Gemini)</td><td><code>gemini-2.5-flash</code></td><td>—</td></tr>
+                <tr><td>Nettoyage (OpenAI)</td><td><code>gpt-4o-mini</code></td><td><code>https://api.openai.com/v1</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- WHISPER LOCAL -->
+          <h2 id="whisper-local" class="anchor-h">Whisper local (hors-ligne)</h2>
+          <p>
+            Le moteur <strong>Whisper local</strong> transcrit sur votre machine, sans aucune connexion ni clé.
+            Il a besoin d'un fichier de modèle <code>ggml</code>.
+          </p>
+          <ol>
+            <li>
+              Téléchargez un modèle <code>ggml</code> depuis
+              <a href="https://huggingface.co/ggerganov/whisper.cpp/tree/main" target="_blank" rel="noopener">huggingface.co/ggerganov/whisper.cpp</a>.
+              Par exemple <code>ggml-base.bin</code> (léger) ou <code>ggml-large-v3.bin</code> (plus précis, plus lourd).
+            </li>
+            <li>Dans <strong>Réglages</strong>, choisissez <strong>Whisper local</strong>.</li>
+            <li>Renseignez le <strong>chemin du modèle ggml</strong> vers le fichier téléchargé.</li>
+          </ol>
+          <div class="note">
+            Astuce : un modèle plus grand améliore la qualité mais consomme plus de mémoire et de CPU. Commencez
+            par <code>base</code> ou <code>small</code>, montez en gamme si besoin.
+          </div>
+
+          <!-- UTILISATION -->
+          <h2 id="utilisation" class="anchor-h">Dicter au quotidien</h2>
+          <ol>
+            <li>Placez votre curseur là où le texte doit apparaître (éditeur, champ, chat…).</li>
+            <li>Déclenchez la dictée : bouton <strong>micro</strong> de la barre, ou le <strong>raccourci global</strong>.</li>
+            <li>Parlez. La <strong>waveform</strong> suit votre voix ; avec Gemini Live, le texte s'écrit en direct.</li>
+            <li>Arrêtez : le texte est <strong>tapé au curseur</strong> ou <strong>copié au presse-papier</strong>.</li>
+          </ol>
+          <div class="note tip">
+            Le <strong>raccourci global</strong> permet de démarrer/arrêter sans quitter votre application.
+            Sous Linux, configurez-le via votre compositeur (voir <a href="#linux">Linux &amp; Hyprland</a>).
+          </div>
+
+          <!-- REFORMULATION -->
+          <h2 id="reformulation" class="anchor-h">Nettoyage &amp; reformulation</h2>
+          <p>
+            Activez le <strong>nettoyage automatique</strong> pour qu'un LLM retire les hésitations
+            (« euh »), faux départs et répétitions après chaque dictée.
+          </p>
+          <p>
+            Allez plus loin avec des <strong>prompts de reformulation</strong> personnalisés : définissez vos
+            propres transformations et appliquez-les à une dictée d'un clic. Quelques idées :
+          </p>
+          <ul>
+            <li>« Reformuler de manière formelle / professionnelle »</li>
+            <li>« Convertir en commande terminal »</li>
+            <li>« Corriger l'orthographe et la grammaire seulement »</li>
+            <li>« Résumer en une phrase »</li>
+          </ul>
+          <p>Choisissez le moteur de reformulation (Gemini, Mistral, Groq, OpenAI ou OpenAI-compatible) indépendamment du moteur de transcription.</p>
+
+          <!-- HISTORIQUE -->
+          <h2 id="historique" class="anchor-h">Historique</h2>
+          <p>
+            Sonora conserve vos dictées récentes. Ouvrez l'<strong>historique</strong> pour relire une session
+            passée et la <strong>recopier</strong> au presse-papier en un clic.
+          </p>
+
+          <!-- LINUX / HYPRLAND -->
+          <h2 id="linux" class="anchor-h">Linux &amp; Hyprland</h2>
+          <p>
+            Sonora est une fenêtre <strong>transparente, sans décorations, sans focus</strong>. Sous un
+            compositeur tuilant comme Hyprland, faites-la flotter et bindez le raccourci global. Syntaxe pour
+            les versions récentes de Hyprland (sélecteur <code>match:</code>) :
+          </p>
+          <pre><code>windowrule = float on,            match:title ^(Sonora)$
+windowrule = move (monitor_w/2)-240 40, match:title ^(Sonora)$
+windowrule = border_size 0,       match:title ^(Sonora)$
+windowrule = no_shadow on,        match:title ^(Sonora)$
+windowrule = rounding 0,          match:title ^(Sonora)$
+windowrule = no_blur on,          match:title ^(Sonora)$
+windowrule = pin on,              match:title ^(Sonora)$
+windowrule = no_initial_focus on, match:title ^(Sonora)$
+
+# Push-to-talk : lance une 2ᵉ instance qui transmet l'action à celle en cours
+bind = SUPER, V, exec, sonora toggle</code></pre>
+          <div class="note">
+            Le raccourci lance une seconde instance de <code>sonora</code> qui transmet l'action
+            (<code>toggle</code>, <code>start</code>, <code>stop</code>, <code>show</code>) à l'instance déjà
+            ouverte (mécanisme « single-instance »).
+          </div>
+
+          <!-- CONFIDENTIALITE -->
+          <h2 id="confidentialite" class="anchor-h">Confidentialité &amp; sécurité</h2>
+          <ul>
+            <li><strong>Clés au trousseau</strong> — vos clés API sont stockées dans le keyring de l'OS (repli vers un fichier local en permissions <code>0600</code>), jamais en clair côté interface.</li>
+            <li><strong>Vous choisissez où vont vos données</strong> — avec un moteur cloud, l'audio est envoyé au fournisseur sélectionné. Avec <strong>Whisper local</strong>, rien ne quitte votre machine.</li>
+            <li><strong>Open source</strong> — le code est public et auditable sous licence MIT.</li>
+          </ul>
+          <div class="note warn">
+            Ce projet est <strong>intégralement construit avec une IA</strong>. C'est une démonstration assumée —
+            relisez ce qui touche à la sécurité avant un usage sensible.
+          </div>
+
+          <!-- DEPANNAGE -->
+          <h2 id="depannage" class="anchor-h">Dépannage</h2>
+
+          <h3>Le texte n'est pas tapé au curseur (Linux)</h3>
+          <p>Installez <code>wtype</code> (Wayland) ou <code>xdotool</code> (X11). À défaut, Sonora bascule sur le presse-papier — collez avec <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p>
+
+          <h3>« Clé API invalide » ou aucune transcription</h3>
+          <p>Vérifiez le fournisseur sélectionné et la clé associée. Pour Gemini, la clé doit commencer par <code>AIza</code> (et non <code>AQ.</code>). Vérifiez aussi votre quota chez le fournisseur.</p>
+
+          <h3>Pas de son / la waveform ne bouge pas</h3>
+          <p>Autorisez l'accès au micro (macOS : <em>Réglages Système → Confidentialité → Micro</em>). Vérifiez le bon périphérique d'entrée au niveau de l'OS.</p>
+
+          <h3>macOS : « développeur non identifié »</h3>
+          <p>Faites un <strong>clic droit → Ouvrir</strong> sur l'app, ou levez la quarantaine : <code>xattr -dr com.apple.quarantine /Applications/Sonora.app</code>.</p>
+
+          <h3>L'interface paraît floue ou décalée (Wayland)</h3>
+          <p>Sonora force XWayland pour contourner un bug de mise à l'échelle fractionnaire de WebKitGTK. Si l'affichage reste anormal sous un scale fractionnaire (ex. 1.33), essayez un scale entier sur l'écran concerné.</p>
+
+          <h3>Le clic droit / la clé est perdue après mise à jour</h3>
+          <p>Les réglages sont liés à l'identifiant d'application. Après une mise à jour majeure changeant cet identifiant, ressaisissez votre clé une fois.</p>
+
+          <!-- BUILD -->
+          <h2 id="build" class="anchor-h">Compiler depuis les sources</h2>
+          <p>Prérequis : <strong>Rust</strong> (stable), <strong>Bun</strong>, et les
+            <a href="https://tauri.app/start/prerequisites/" target="_blank" rel="noopener">dépendances système Tauri</a> (WebKitGTK, etc.).</p>
+          <pre><code>git clone https://github.com/Devitek/sonora.git
+cd sonora
+bun install
+bun run tauri dev      # développement
+bun run tauri build    # build de production</code></pre>
+          <p><strong>NixOS / Nix</strong> — un flake fournit tout le devshell :</p>
+          <pre><code>nix develop
+bash scripts/dev.sh</code></pre>
+          <p>Le binaire de production se trouve dans <code>src-tauri/target/release/sonora</code>.</p>
+
+          <div class="cta" style="margin-top: 56px">
+            <h2>Une question, un bug, une idée ?</h2>
+            <p>Ouvrez une issue ou explorez le code sur GitHub.</p>
+            <div class="hero-cta">
+              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/issues" target="_blank" rel="noopener">Ouvrir une issue</a>
+              <a class="btn btn-ghost" href="https://github.com/Devitek/sonora" target="_blank" rel="noopener">Voir le dépôt</a>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer>
+      <div class="wrap">
+        <span>© 2026 Sonora — <a href="https://github.com/Devitek/sonora/blob/main/LICENSE">MIT</a></span>
+        <span>
+          <a href="index.html">Accueil</a> ·
+          <a href="https://github.com/Devitek/sonora">GitHub</a> ·
+          <a href="https://github.com/Devitek/sonora/releases">Releases</a>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>
