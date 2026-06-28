@@ -72,7 +72,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "11.0"
         with:
           tagName: ${{ inputs.tag }}
-          releaseName: transcript ${{ inputs.tag }}
+          releaseName: Sonora ${{ inputs.tag }}
           releaseBody: |
             Téléchargez l'installeur correspondant à votre OS dans les *Assets* ci-dessous :
             - **Linux** : `.AppImage` (portable) ou `.deb`
