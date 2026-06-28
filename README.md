@@ -1,70 +1,138 @@
-# transcript — refonte « barre flottante »
+<p align="center">
+  <img src="brand/logo.svg" alt="Sonora" width="116" height="116">
+</p>
 
-<!-- Remplacez <owner> par votre compte / organisation GitHub. -->
-[![CI](https://github.com/<owner>/transcript/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/transcript/actions/workflows/ci.yml)
-[![Release](https://github.com/<owner>/transcript/actions/workflows/release.yml/badge.svg)](https://github.com/<owner>/transcript/actions/workflows/release.yml)
+<h1 align="center">Sonora</h1>
 
-Portage du design validé dans l'app Svelte 5 + Tauri. **Aucune logique métier modifiée** :
-providers, clés API, nettoyage, historique, saisie auto au curseur, hotkey global / tray,
-événements backend — tout est préservé. Le design et le thème changent, plus un nouveau
-réglage **Thème (Système / Clair / Sombre)** et une **waveform pilotée par le vrai niveau audio**.
+<p align="center">
+  <em>Transcription vocale en temps réel, sur votre bureau — modèles cloud ou 100 % locaux.</em>
+</p>
 
-## Fichiers à remplacer
+<p align="center">
+  <!-- Remplacez OWNER par votre compte / organisation GitHub (et le nom du repo si besoin). -->
+  <a href="https://github.com/OWNER/sonora/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/OWNER/sonora/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/OWNER/sonora/actions/workflows/release.yml"><img alt="Release" src="https://github.com/OWNER/sonora/actions/workflows/release.yml/badge.svg"></a>
+  <img alt="platform" src="https://img.shields.io/badge/macOS%20·%20Windows%20·%20Linux-0a0b12?style=flat-square">
+  <img alt="built with" src="https://img.shields.io/badge/Tauri%20·%20Svelte%205%20·%20Rust-7C5CFF?style=flat-square">
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-22D3EE?style=flat-square">
+</p>
 
-Copiez ces fichiers par-dessus les vôtres (mêmes chemins) :
+> 🤖 **Projet open source, intégralement construit avec une IA — et c'est assumé.**
+> Sonora a été conçu et codé de bout en bout par un agent IA (architecture, backend
+> Rust/Tauri, frontend Svelte 5, CI/CD, design de marque), en binôme avec un humain qui
+> orientait et testait sur sa machine. Le code, les commits et ce README sont le résultat
+> de cette collaboration. À prendre comme une démonstration de ce qu'on peut bâtir ainsi —
+> avec ses qualités… et la nécessité de relire ce qui touche à la sécurité.
 
+---
+
+## ✦ C'est quoi
+
+Une **barre flottante façon Spotlight**, toujours à portée de raccourci. Vous appuyez, vous
+parlez, le texte s'écrit **en direct** — puis il est copié dans le presse-papier ou **tapé
+directement à l'endroit de votre curseur**. Branchez le moteur de votre choix : **Gemini**,
+**Mistral**, **OpenAI**, **Groq**, n'importe quel endpoint **compatible OpenAI**, ou
+**Whisper 100 % local et hors-ligne**.
+
+## Fonctionnalités
+
+- 🎙️ **Dictée en streaming** — le texte apparaît au fur et à mesure (avec Gemini Live).
+- ⌨️ **Collage au curseur** — le résultat est tapé là où vous êtes (ou copié au presse-papier).
+- ⌘ **Raccourci global** — démarrez/arrêtez sans quitter votre application en cours.
+- 🔌 **Modèles enfichables** — Gemini Live, Mistral (Voxtral), OpenAI Whisper, Groq,
+  OpenAI-compatible, Whisper local.
+- ✦ **Nettoyage des hésitations** — passe optionnelle qui retire les « euh », faux départs,
+  répétitions.
+- ✍️ **Prompts de reformulation** — transformez une dictée via un LLM avec vos propres prompts
+  (« reformuler de manière formelle », « convertir en commande terminal », « réécrire pro »…).
+- 🕘 **Historique** — retrouvez et recopiez vos dictées précédentes.
+- 🌗 **Thème** clair / sombre / système.
+- 〰️ **Waveform en direct** pilotée par le vrai niveau audio.
+- 🔐 **Clés API au trousseau** — stockées dans le keyring de l'OS (repli fichier `0600`),
+  jamais en clair côté front.
+- 🖥️ **Multiplateforme** — un binaire léger (Tauri) sur macOS, Windows et Linux.
+
+## Providers
+
+| Fournisseur          | Transcription      | Reformulation | Clé requise | Hors-ligne |
+| -------------------- | ------------------ | :-----------: | :---------: | :--------: |
+| **Gemini Live**      | streaming, mot-à-mot | ✓           |     oui     |     —      |
+| **Mistral (Voxtral)**| par segment        | ✓             |     oui     |     —      |
+| **OpenAI Whisper**   | par segment        | ✓             |     oui     |     —      |
+| **Groq Whisper**     | par segment        | ✓             |     oui     |     —      |
+| **OpenAI-compatible**| par segment        | ✓             | selon hôte  |  possible  |
+| **Whisper local** (ggml) | par segment    |       —       |     non     |     ✓      |
+
+> La transcription « par segment » découpe la parole via une détection d'activité vocale (VAD)
+> et transcrit chaque segment ; Gemini Live, lui, renvoie le texte en continu.
+
+## Installation / développement
+
+Prérequis : **Rust** (stable), **Bun**, et les [dépendances système Tauri](https://tauri.app/start/prerequisites/)
+(WebKitGTK, etc.).
+
+```bash
+bun install
+bun run tauri dev      # développement
+bun run tauri build    # build de production (binaire dans src-tauri/target/release/sonora)
 ```
-src/App.svelte            ← refonte complète (template + styles)
-src/app.css               ← système de tokens clair/sombre
-src/lib/settings.ts       ← + getTheme()/setTheme() (le reste inchangé)
-src/lib/Select.svelte     ← fond de liste via variable (compatible thème clair)
-src-tauri/tauri.conf.json ← fenêtre 460×440 (laisse la place à la barre + menu déroulant)
+
+**NixOS / Nix** — un flake fournit tout le devshell (WebKitGTK, ALSA, cmake, wtype…) :
+
+```bash
+nix develop
+bash scripts/dev.sh    # libère le port Vite résiduel puis lance `tauri dev`
 ```
 
-Aucune nouvelle dépendance. `git diff` recommandé avant commit.
+## Configuration (⚙)
 
-## Ce qui change à l'écran
+Ouvrez le menu **☰ → Réglages** :
 
-- **Barre flottante** : bouton record à gauche, texte en ligne, bouton **Options** (☰) à droite.
-  Quand du texte existe : boutons ✦ nettoyer · ⧉ copier · ⌫ effacer apparaissent dans la barre.
-- **Capsule waveform** : pastille sombre sous la barre pendant l'écoute, animée par le **vrai
-  niveau RMS** (`level`) reçu du backend (canvas, lissé).
-- **Menu déroulant** : deux bascules rapides (Coller au curseur, Nettoyage auto) + onglets
-  **Historique** et **Réglages**. Les Réglages contiennent tous les champs existants
-  (fournisseur, clé, modèle, base_url, whisper local, langue, section nettoyage) **plus** le
-  sélecteur de thème en haut. Bouton « Masquer la fenêtre » en bas.
+1. Choisissez un **fournisseur** de transcription.
+2. Collez la **clé API** correspondante (stockée dans le trousseau de l'OS).
+3. Optionnel : modèle, langue, URL de base (endpoints compatibles), chemin du modèle `ggml`
+   (Whisper local).
+4. Optionnel : activez le **nettoyage automatique**, choisissez son **moteur de reformulation**,
+   et définissez vos **prompts** personnalisés.
 
-## Détails d'implémentation
+> Pour le développement, ces réglages peuvent aussi venir d'un fichier `.env` (voir
+> [`.env.example`](.env.example)).
 
-- **Thème** : `theme` (`system|light|dark`) persisté via le store (`getTheme/setTheme`).
-  `effectiveTheme` résout `system` via `matchMedia('(prefers-color-scheme: dark)')` (avec
-  écoute des changements OS) et applique `data-theme` sur `<html>`. Tout le style passe par des
-  variables CSS définies dans `app.css` pour les deux thèmes.
-- **Nettoyage auto** : la bascule rapide écrit `settings.cleanup_enabled` et appelle
-  `save_settings` immédiatement (la case à cocher dans Réglages reste pour configurer moteur/modèle).
-- **Waveform** : `requestAnimationFrame` démarré/arrêté par un `$effect` sur `listening`.
-  Couleurs néon (#7C5CFF→#22D3EE) indépendantes du thème, la capsule étant toujours sombre.
+## Barre flottante sous Linux (Hyprland)
 
-## À ajuster si besoin
+Sonora est une fenêtre **transparente, sans décorations, sans focus**. Sous un compositeur
+tuilant comme Hyprland, faites-la flotter et bindez le raccourci global :
 
-- **Indice de niveau** : `target = level * 2.6` dans `drawWave()`. Si vos RMS sont plus
-  faibles/forts, ajustez ce facteur.
-- **Taille de fenêtre** : `tauri.conf.json` (460×440). La fenêtre est opaque
-  (`transparent: false`) ; le fond dégradé simule le bureau. Pour une vraie barre flottante à
-  coins arrondis transparents, passez `transparent: true` + coins arrondis (spécifique OS — non
-  fait ici pour rester sûr).
-- **Raccourci** : aucun libellé de hotkey n'est affiché dans la barre (le binding réel n'est pas
-  connu côté front). Ajoutez un `<kbd>` dans `.bar-text` si vous voulez l'indiquer.
+```ini
+windowrule = float,          title:^(Sonora)$
+windowrule = noborder,       title:^(Sonora)$
+windowrule = noshadow,       title:^(Sonora)$
+windowrule = norounding,     title:^(Sonora)$
+windowrule = pin,            title:^(Sonora)$
+windowrule = noinitialfocus, title:^(Sonora)$
+windowrule = move 50%-240 40, title:^(Sonora)$
 
-## TODO / Roadmap
+# Push-to-talk : lance une 2ᵉ instance qui transmet l'action à celle en cours (single-instance)
+bind = SUPER, V, exec, sonora toggle
+```
 
-- [ ] **Signature des binaires** (retirer les avertissements Gatekeeper / SmartScreen sur les
-  builds publiés par la CI) :
-  - **macOS** : certificat « Developer ID Application » + **notarisation** (`notarytool`). À
-    câbler dans `tauri-action` via les secrets `APPLE_CERTIFICATE`,
-    `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`,
-    `APPLE_TEAM_ID`.
-  - **Windows** : certificat **Authenticode** (code signing) via `WINDOWS_CERTIFICATE` +
-    `WINDOWS_CERTIFICATE_PASSWORD`, ou **Azure Trusted Signing**.
-  - Nécessite des certificats payants (Apple Developer Program / AC Windows) ; à ajouter quand
-    disponibles, sans changer le reste du pipeline.
+## Releases & CI
+
+- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) : sur chaque push/PR,
+  type-check Svelte + `cargo fmt` + `clippy -D warnings`.
+- **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) : *Actions →
+  Release → Run workflow* avec un bump **semver** (patch/minor/major) → versionne, tague
+  `vX.Y.Z`, et publie les binaires **Linux** (`.AppImage`, `.deb`), **macOS** (`.dmg`,
+  Apple Silicon + Intel) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
+
+## Marque
+
+Ressources visuelles dans [`brand/`](brand/) :
+
+- `logo.svg` — icône (dégradé, fond arrondi) · `logo-mark.svg` / `logo-mark-white.svg` — symbole seul
+- Couleurs : violet `#7C5CFF` → cyan `#22D3EE` · fond sombre `#0A0B12`
+- Typographie : Space Grotesk (titres) · Inter (UI) · JetBrains Mono (détails)
+
+## Licence
+
+[MIT](LICENSE) © 2026

@@ -24,5 +24,5 @@ fn main() {
         }
     }
 
-    transcript_lib::run()
+    sonora_lib::run()
 }

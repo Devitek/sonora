@@ -1,4 +1,4 @@
-//! transcript — real-time speech-to-text with pluggable models.
+//! Sonora — real-time speech-to-text with pluggable models.
 
 mod audio;
 mod cleanup;
@@ -27,7 +27,7 @@ const CONTROL_CHANNEL: &str = "transcript://control";
 #[derive(Default)]
 struct PendingAction(Mutex<Option<String>>);
 
-/// Map CLI args to a control action: `transcript toggle|start|stop|show`.
+/// Map CLI args to a control action: `sonora toggle|start|stop|show`.
 fn parse_action(args: &[String]) -> Option<&'static str> {
     args.iter().find_map(|a| match a.as_str() {
         "toggle" => Some("toggle"),
@@ -116,7 +116,7 @@ fn save_api_key(app: AppHandle, provider: String, key: String) -> Result<(), Str
 /// Liveness probe used by the frontend on mount to confirm the IPC bridge.
 #[tauri::command]
 fn app_ready() -> String {
-    format!("transcript v{}", env!("CARGO_PKG_VERSION"))
+    format!("Sonora v{}", env!("CARGO_PKG_VERSION"))
 }
 
 /// Start a dictation session: spin up the provider stream, then open the mic
@@ -188,7 +188,7 @@ pub fn run() {
     let mut builder = tauri::Builder::default();
 
     // single-instance MUST be the first plugin: a second launch (e.g. the
-    // Hyprland keybind running `transcript toggle`) forwards its argv here.
+    // Hyprland keybind running `sonora toggle`) forwards its argv here.
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -248,12 +248,12 @@ pub fn run() {
             save_api_key
         ])
         .run(tauri::generate_context!())
-        .expect("error while running transcript");
+        .expect("error while running Sonora");
 }
 
 /// Register a desktop global shortcut (Ctrl+Shift+Space) to toggle dictation.
 /// On Wayland global capture is unavailable — prefer a Hyprland keybind running
-/// `transcript toggle` (handled via the single-instance plugin). Failures here
+/// `sonora toggle` (handled via the single-instance plugin). Failures here
 /// are expected on Wayland and only logged.
 #[cfg(desktop)]
 fn register_global_shortcut(app: &AppHandle) {
@@ -270,7 +270,7 @@ fn register_global_shortcut(app: &AppHandle) {
             }
         });
     if let Err(e) = res {
-        eprintln!("[transcript] raccourci global indisponible (normal sous Wayland): {e}");
+        eprintln!("[sonora] raccourci global indisponible (normal sous Wayland): {e}");
     }
 }
 
@@ -294,7 +294,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     TrayIconBuilder::with_id("main")
         .icon(icon)
         .icon_as_template(true)
-        .tooltip("transcript")
+        .tooltip("Sonora")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {

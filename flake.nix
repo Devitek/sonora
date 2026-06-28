@@ -1,5 +1,5 @@
 {
-  description = "transcript — real-time speech-to-text with pluggable models";
+  description = "Sonora — real-time speech-to-text with pluggable models";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -90,7 +90,7 @@
             # floating-bar look). Re-enable only if you hit GPU rendering issues.
             # Credentials are loaded by the app itself from .env (see main.rs),
             # so editing .env takes effect on the next launch without re-sourcing.
-            echo "transcript devshell ready — run: bun install && bun run tauri dev"
+            echo "Sonora devshell ready — run: bun install && bun run tauri dev"
           '';
         };
       });

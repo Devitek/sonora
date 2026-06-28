@@ -107,7 +107,7 @@ impl AudioController {
 
 fn fail(app: &AppHandle, running: &AtomicBool, msg: impl Into<String>) {
     let msg = msg.into();
-    eprintln!("[transcript:audio] {msg}");
+    eprintln!("[sonora:audio] {msg}");
     BackendEvent::Error { message: msg }.emit(app);
     running.store(false, Ordering::Relaxed);
 }
@@ -135,7 +135,7 @@ fn capture_loop(tx: Sender<Msg>, running: Arc<AtomicBool>, app: AppHandle) {
     let in_rate = supported.sample_rate();
     let config: StreamConfig = supported.config();
 
-    eprintln!("[transcript:audio] rate={in_rate} ch={channels} fmt={sample_format:?}");
+    eprintln!("[sonora:audio] rate={in_rate} ch={channels} fmt={sample_format:?}");
 
     let _ = tx.send(Msg::Config { in_rate });
 
@@ -166,7 +166,7 @@ fn build_stream(
     channels: usize,
     tx: Sender<Msg>,
 ) -> Result<cpal::Stream, String> {
-    let err_fn = |e| eprintln!("[transcript:audio] stream error: {e}");
+    let err_fn = |e| eprintln!("[sonora:audio] stream error: {e}");
     let res = match sample_format {
         SampleFormat::F32 => {
             let tx = tx.clone();
@@ -388,7 +388,7 @@ impl Pipeline {
                 }
                 if self.hangover == 0 {
                     let ms = self.seg_buf.len() as f32 / TARGET_RATE as f32 * 1000.0;
-                    eprintln!("[transcript:audio] segment de parole: {ms:.0} ms");
+                    eprintln!("[sonora:audio] segment de parole: {ms:.0} ms");
                     self.emit_segment();
                     self.in_speech = false;
                 } else {
@@ -424,7 +424,7 @@ impl Pipeline {
     fn finish(&mut self) {
         if self.in_speech && !self.seg_buf.is_empty() {
             let ms = self.seg_buf.len() as f32 / TARGET_RATE as f32 * 1000.0;
-            eprintln!("[transcript:audio] segment final: {ms:.0} ms");
+            eprintln!("[sonora:audio] segment final: {ms:.0} ms");
             self.emit_segment();
         }
         if let Some(sink) = &self.sink {

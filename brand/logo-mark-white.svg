@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="logo mark white">
+  <g fill="#ffffff">
+    <rect x="122" y="181" width="36" height="150" rx="18" opacity="0.95"></rect>
+    <rect x="180" y="121" width="36" height="270" rx="18"></rect>
+    <rect x="238" y="66" width="36" height="380" rx="18"></rect>
+    <rect x="296" y="121" width="36" height="270" rx="18"></rect>
+    <rect x="354" y="181" width="36" height="150" rx="18" opacity="0.95"></rect>
+  </g>
+</svg>

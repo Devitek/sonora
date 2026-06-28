@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use base64::Engine;
 
-const SERVICE: &str = "transcript";
+const SERVICE: &str = "sonora";
 
 pub fn set_api_key(config_dir: &Path, provider: &str, key: &str) -> Result<(), String> {
     if keyring_set(provider, key).is_ok() {

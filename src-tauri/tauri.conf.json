@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "transcript",
+  "productName": "Sonora",
   "version": "0.1.0",
-  "identifier": "fr.thomas.transcript",
+  "identifier": "fr.thomas.sonora",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "transcript",
+        "title": "Sonora",
         "width": 480,
         "height": 160,
         "resizable": false,
@@ -38,10 +38,12 @@
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
       "icons/icon.png"
     ],
     "category": "Utility",
-    "shortDescription": "Real-time speech-to-text with pluggable models",
+    "shortDescription": "Sonora — real-time speech-to-text with pluggable models",
     "linux": {
       "appimage": {
         "bundleMediaFramework": false

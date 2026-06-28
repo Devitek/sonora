@@ -56,7 +56,7 @@ writeFileSync(CARGO, cargo);
 if (existsSync(LOCK)) {
   let lock = readFileSync(LOCK, "utf8");
   lock = lock.replace(
-    /(name = "transcript"\nversion = ")[^"]+(")/,
+    /(name = "sonora"\nversion = ")[^"]+(")/,
     `$1${version}$2`,
   );
   writeFileSync(LOCK, lock);
