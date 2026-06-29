@@ -128,7 +128,7 @@ bind = SUPER, V, exec, sonora toggle
 - **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) : *Actions →
   Release → Run workflow* avec un bump **semver** (patch/minor/major) → versionne, tague
   `vX.Y.Z`, et publie les binaires **Linux** (`.AppImage`, `.deb`), **macOS** (`.dmg`,
-  Apple Silicon) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
+  Apple Silicon + Intel) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
 
 ## Marque
 
