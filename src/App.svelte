@@ -686,6 +686,14 @@
       onpointerdown={onBarPointerDown}
       title="Glissez pour déplacer · ⌘/Alt + glisser depuis n'importe où"
     >
+      <span class="grip" aria-hidden="true">
+        <svg width="10" height="18" viewBox="0 0 10 18" fill="currentColor">
+          <circle cx="2.5" cy="3" r="1.3" /><circle cx="7.5" cy="3" r="1.3" />
+          <circle cx="2.5" cy="9" r="1.3" /><circle cx="7.5" cy="9" r="1.3" />
+          <circle cx="2.5" cy="15" r="1.3" /><circle cx="7.5" cy="15" r="1.3" />
+        </svg>
+      </span>
+
       <button
         class="rec"
         class:on={listening}
@@ -1076,6 +1084,20 @@
   }
   .bar:active {
     cursor: grabbing;
+  }
+  /* drag handle: a subtle grip hinting the bar can be moved */
+  .grip {
+    flex: none;
+    display: flex;
+    align-items: center;
+    margin: 0 -6px 0 -2px;
+    color: var(--fg-dim);
+    opacity: 0.5;
+    cursor: grab;
+    transition: opacity 0.12s ease;
+  }
+  .grip:hover {
+    opacity: 0.9;
   }
   .rec {
     flex: none;
