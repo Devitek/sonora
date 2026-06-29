@@ -10,6 +10,8 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
+        lib = pkgs.lib;
+        version = (builtins.fromTOML (builtins.readFile ./src-tauri/Cargo.toml)).package.version;
 
         # Runtime/link libraries required by Tauri (WebKitGTK), the system tray,
         # clipboard (X11/Wayland), and audio capture (ALSA/PipeWire via cpal).
@@ -72,8 +74,127 @@
           libsoup_3
           gobject-introspection
         ];
+
+        # ---- Frontend (Svelte/Vite) built with bun -----------------------------
+        # Fixed-output derivation: it needs network for `bun install`, so we pin
+        # the hash of the produced `dist/`. Bump `outputHash` whenever the
+        # frontend sources or dependencies change (nix will print the new hash).
+        frontendSrc = lib.fileset.toSource {
+          root = ./.;
+          fileset = lib.fileset.unions [
+            ./package.json
+            ./bun.lock
+            ./index.html
+            ./svelte.config.js
+            ./tsconfig.json
+            ./tsconfig.node.json
+            ./vite.config.ts
+            ./src
+          ];
+        };
+
+        frontend = pkgs.stdenvNoCC.mkDerivation {
+          pname = "sonora-frontend";
+          inherit version;
+          src = frontendSrc;
+          nativeBuildInputs = [ pkgs.bun pkgs.nodejs_22 pkgs.cacert ];
+          dontConfigure = true;
+          SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+          buildPhase = ''
+            runHook preBuild
+            export HOME="$TMPDIR"
+            bun install --frozen-lockfile --no-progress
+            # Vite's bin uses a `#!/usr/bin/env node` shebang, which fails in the
+            # sandbox (no /usr/bin/env) — rewrite the dep shebangs to nix node.
+            patchShebangs node_modules
+            bun run build
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            cp -r dist "$out"
+            runHook postInstall
+          '';
+          outputHashMode = "recursive";
+          outputHashAlgo = "sha256";
+          outputHash = "sha256-vh9hyphiyms2wgdiWNJduEXXFfmuns5UvsEF1/SDP6s=";
+        };
+
+        # ---- The app: Rust binary with the frontend embedded -------------------
+        sonora = pkgs.rustPlatform.buildRustPackage {
+          pname = "sonora";
+          inherit version;
+          src = ./.;
+          cargoRoot = "src-tauri";
+          buildAndTestSubdir = "src-tauri";
+          cargoLock.lockFile = ./src-tauri/Cargo.lock;
+
+          nativeBuildInputs = with pkgs; [
+            pkg-config
+            cmake # whisper.cpp
+            rustPlatform.bindgenHook # whisper-rs bindgen (libclang)
+            wrapGAppsHook3
+            gobject-introspection
+          ];
+
+          buildInputs = with pkgs; [
+            glib
+            gtk3
+            webkitgtk_4_1
+            cairo
+            pango
+            gdk-pixbuf
+            librsvg
+            harfbuzz
+            atk
+            libsoup_3
+            glib-networking
+            openssl
+            dbus
+            libsecret
+            libayatana-appindicator
+            alsa-lib
+            libxcb
+            libx11
+            libxcursor
+            libxrandr
+            libxi
+            wayland
+            libxkbcommon
+          ];
+
+          # native-tls / openssl-sys: link the system OpenSSL, don't vendor.
+          env.OPENSSL_NO_VENDOR = "1";
+
+          # `tauri::generate_context!` embeds ../dist (relative to src-tauri);
+          # drop the pre-built frontend there before cargo runs.
+          postPatch = ''
+            rm -rf dist
+            cp -r ${frontend} dist
+            chmod -R u+w dist
+          '';
+
+          doCheck = false;
+
+          meta = {
+            description = "Real-time speech-to-text floating bar with pluggable models";
+            homepage = "https://github.com/Devitek/sonora";
+            license = lib.licenses.mit;
+            mainProgram = "sonora";
+            platforms = lib.platforms.linux;
+          };
+        };
       in
       {
+        packages.default = sonora;
+        packages.sonora = sonora;
+        packages.frontend = frontend;
+
+        apps.default = {
+          type = "app";
+          program = "${sonora}/bin/sonora";
+        };
+
         devShells.default = pkgs.mkShell {
           packages = buildTools ++ runtimeLibs;
 
