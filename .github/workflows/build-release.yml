@@ -79,7 +79,7 @@ jobs:
           }
 
       - name: Build & publish
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # whisper.cpp (ggml) uses std::filesystem, which needs macOS 10.15+.
