@@ -21,6 +21,9 @@ pub struct Settings {
     pub base_url: Option<String>,
     pub whisper_model: Option<String>,
 
+    /// Preferred microphone (cpal `DeviceId` string). Empty/None = system default.
+    pub input_device: Option<String>,
+
     // Post-processing text engine (cleanup + reformulation prompts).
     pub cleanup_enabled: Option<bool>,
     pub cleanup_provider: Option<String>, // gemini | openai | groq | openai-compatible

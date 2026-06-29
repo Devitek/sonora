@@ -128,9 +128,17 @@ fn start_recording(
     audio: State<'_, AudioController>,
     session: State<'_, SessionController>,
 ) -> Result<(), String> {
-    let cfg = ProviderConfig::resolve(&config_dir(&app)?)?;
+    let dir = config_dir(&app)?;
+    let cfg = ProviderConfig::resolve(&dir)?;
+    let device = settings::load(&dir).input_device.filter(|s| !s.is_empty());
     let sink = session.start(app.clone(), cfg)?;
-    audio.start(app, Some(sink))
+    audio.start(app, Some(sink), device)
+}
+
+/// List the available microphones (input devices) for the settings picker.
+#[tauri::command]
+fn list_audio_inputs() -> Vec<audio::AudioInput> {
+    audio::list_input_devices()
 }
 
 /// Stop the current dictation session and release the microphone.
@@ -282,6 +290,7 @@ pub fn run() {
             app_ready,
             start_recording,
             stop_recording,
+            list_audio_inputs,
             hide_window,
             resize_bar,
             open_settings,

@@ -97,13 +97,15 @@ bash scripts/dev.sh    # libère le port Vite résiduel puis lance `tauri dev`
 
 ## Configuration (⚙)
 
-Ouvrez le menu **☰ → Réglages** :
+Ouvrez les **Réglages** (icône ⚙ de la barre) :
 
 1. Choisissez un **fournisseur** de transcription.
 2. Collez la **clé API** correspondante (stockée dans le trousseau de l'OS).
-3. Optionnel : modèle, langue, URL de base (endpoints compatibles), chemin du modèle `ggml`
+3. Optionnel : choisissez le **microphone** (source de capture ; « Système » suit le micro par
+   défaut de l'OS, ↻ rafraîchit la liste).
+4. Optionnel : modèle, langue, URL de base (endpoints compatibles), chemin du modèle `ggml`
    (Whisper local).
-4. Optionnel : activez le **nettoyage automatique**, choisissez son **moteur de reformulation**,
+5. Optionnel : activez le **nettoyage automatique**, choisissez son **moteur de reformulation**,
    et définissez vos **prompts** personnalisés.
 
 > Pour le développement, ces réglages peuvent aussi venir d'un fichier `.env` (voir

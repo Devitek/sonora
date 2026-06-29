@@ -32,6 +32,7 @@ export interface Settings {
   language?: string;
   base_url?: string;
   whisper_model?: string;
+  input_device?: string;
   cleanup_enabled?: boolean;
   cleanup_provider?: string;
   cleanup_model?: string;

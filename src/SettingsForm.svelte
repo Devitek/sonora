@@ -21,6 +21,12 @@
   // The parent panel owns the window chrome; it passes a close callback.
   let { onClose }: { onClose?: () => void } = $props();
 
+  interface AudioInput {
+    id: string;
+    name: string;
+    is_default: boolean;
+  }
+
   let settings = $state<Settings>({ provider: "gemini" });
   let apiKey = $state("");
   let hasKey = $state(false);
@@ -28,6 +34,24 @@
   let hasCleanupKey = $state(false);
   let settingsMsg = $state("");
   let autoType = $state(false);
+  let audioInputs = $state<AudioInput[]>([]);
+
+  // Microphone picker options: system default + each device, plus a synthetic
+  // entry when the saved device is currently unavailable (e.g. unplugged USB).
+  const micOptions = $derived.by(() => {
+    const opts = [
+      { id: "", label: "Système (par défaut)" },
+      ...audioInputs.map((d) => ({
+        id: d.id,
+        label: d.is_default ? `${d.name} — défaut` : d.name,
+      })),
+    ];
+    const sel = settings.input_device;
+    if (sel && !audioInputs.some((d) => d.id === sel)) {
+      opts.push({ id: sel, label: "Micro sélectionné (indisponible)" });
+    }
+    return opts;
+  });
 
   // Theme: only used here to highlight the active segment. The panel applies the
   // actual data-theme attribute (and reloads it on the broadcast below).
@@ -50,6 +74,10 @@
   }
   async function refreshHasCleanupKey() {
     hasCleanupKey = await invoke<boolean>("has_api_key", { provider: "cleanup" });
+  }
+
+  async function loadAudioInputs() {
+    audioInputs = (await invoke<AudioInput[]>("list_audio_inputs")) ?? [];
   }
 
   /** Tell the bar (and the panel) to reload persisted settings. */
@@ -110,6 +138,7 @@
   onMount(() => {
     if (isTauri) {
       void loadSettings();
+      void loadAudioInputs();
       void getAutoType().then((v) => (autoType = v));
       void getTheme().then((v) => (theme = v));
     } else {
@@ -117,9 +146,15 @@
       hasKey = true;
       hasCleanupKey = true;
       autoType = true;
+      audioInputs = [
+        { id: "coreaudio:builtin", name: "Micro intégré (MacBook Pro)", is_default: true },
+        { id: "coreaudio:jabra", name: "Casque USB — Jabra Evolve", is_default: false },
+        { id: "coreaudio:c920", name: "Webcam C920", is_default: false },
+      ];
       settings = {
         provider: "gemini",
         language: "fr",
+        input_device: "coreaudio:jabra",
         cleanup_enabled: true,
         cleanup_provider: "gemini",
         prompts: [
@@ -155,6 +190,18 @@
         <button class="seg-btn" class:active={theme === "light"} onclick={() => chooseTheme("light")}>Clair</button>
         <button class="seg-btn" class:active={theme === "dark"} onclick={() => chooseTheme("dark")}>Sombre</button>
       </div>
+    </div>
+
+    <!-- Microphone (source de capture) -->
+    <div class="field">
+      <span>Microphone</span>
+      <div class="mic-row">
+        <div class="mic-select">
+          <Select bind:value={settings.input_device} options={micOptions} />
+        </div>
+        <button class="mic-refresh" title="Rafraîchir la liste" aria-label="Rafraîchir les micros" onclick={loadAudioInputs}>↻</button>
+      </div>
+      <span class="mic-hint">Choisissez la source audio utilisée pour la dictée. « Système » suit le micro par défaut de l'OS.</span>
     </div>
 
     <div class="field">
@@ -381,6 +428,33 @@
   }
   .field input:focus {
     border-color: var(--accent);
+  }
+  .mic-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .mic-select {
+    flex: 1;
+    min-width: 0;
+  }
+  .mic-refresh {
+    flex: none;
+    width: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg-dim);
+    font-size: 15px;
+  }
+  .mic-refresh:hover {
+    color: var(--fg);
+    border-color: var(--accent-soft-border);
+  }
+  .mic-hint {
+    font-size: 10.5px;
+    color: var(--fg-dim);
+    line-height: 1.4;
   }
   .seg {
     display: flex;

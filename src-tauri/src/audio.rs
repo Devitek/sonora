@@ -17,12 +17,83 @@ use std::sync::{
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use std::str::FromStr;
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, FromSample, Sample, SampleFormat, SizedSample, StreamConfig};
+use cpal::{Device, DeviceId, FromSample, Sample, SampleFormat, SizedSample, StreamConfig};
+use serde::Serialize;
 use tauri::AppHandle;
 
 use crate::events::BackendEvent;
 use crate::providers::SessionSink;
+
+/// A selectable microphone (input device) surfaced to the settings UI.
+#[derive(Serialize, Clone, Debug)]
+pub struct AudioInput {
+    /// Stable cpal device id (`DeviceId` as string) — the value persisted in
+    /// `Settings::input_device`. Stable across reboots/reconnections.
+    pub id: String,
+    /// Human-readable label for the picker.
+    pub name: String,
+    /// Whether this is the host's current default input.
+    pub is_default: bool,
+}
+
+/// Best-effort human label for a device (its description name, else its id).
+fn device_label(d: &Device, id_str: &str) -> String {
+    d.description()
+        .map(|desc| desc.name().to_string())
+        .unwrap_or_else(|_| id_str.to_string())
+}
+
+/// Enumerate available input devices (deduplicated by id), default first.
+/// Best-effort: returns an empty list if the host can't be queried.
+pub fn list_input_devices() -> Vec<AudioInput> {
+    let host = cpal::default_host();
+    let default_id = host.default_input_device().and_then(|d| d.id().ok());
+
+    let mut out: Vec<AudioInput> = Vec::new();
+    if let Ok(devices) = host.input_devices() {
+        for d in devices {
+            let Ok(id) = d.id() else { continue };
+            let id_str = id.to_string();
+            // ALSA's null/"discard" device is not a real mic.
+            if id_str == "alsa:null" {
+                continue;
+            }
+            let name = device_label(&d, &id_str);
+            // Collapse exact id/name duplicates: ALSA exposes the same card
+            // under several nodes (sysdefault/front/hw/plughw) with one label —
+            // keep the first (most format-compatible) so the list stays legible.
+            if out.iter().any(|a| a.id == id_str || a.name == name) {
+                continue;
+            }
+            let is_default = default_id.as_ref() == Some(&id);
+            out.push(AudioInput {
+                id: id_str,
+                name,
+                is_default,
+            });
+        }
+    }
+    // Surface the default first so the UI can preselect it sensibly.
+    out.sort_by_key(|a| !a.is_default);
+    out
+}
+
+/// Resolve the cpal device to capture from: the one whose id matches `wanted`,
+/// else the system default. A previously-selected device that vanished (e.g. an
+/// unplugged USB mic) thus transparently falls back to the default.
+fn pick_input_device(host: &cpal::Host, wanted: Option<&str>) -> Option<Device> {
+    if let Some(id_str) = wanted.filter(|s| !s.is_empty()) {
+        if let Ok(id) = DeviceId::from_str(id_str) {
+            if let Some(d) = host.device_by_id(&id) {
+                return Some(d);
+            }
+        }
+    }
+    host.default_input_device()
+}
 
 /// Target sample rate fed to every transcription backend.
 pub const TARGET_RATE: u32 = 16_000;
@@ -53,8 +124,14 @@ struct Running {
 
 impl AudioController {
     /// Start capturing, forwarding 16 kHz mono PCM to `sink` (the provider
-    /// session) when present. Idempotent: a no-op if already running.
-    pub fn start(&self, app: AppHandle, sink: Option<SessionSink>) -> Result<(), String> {
+    /// session) when present. `device` is the preferred microphone name (empty
+    /// or unknown = system default). Idempotent: a no-op if already running.
+    pub fn start(
+        &self,
+        app: AppHandle,
+        sink: Option<SessionSink>,
+        device: Option<String>,
+    ) -> Result<(), String> {
         let mut guard = self.inner.lock().unwrap();
         if guard.is_some() {
             return Ok(());
@@ -66,7 +143,7 @@ impl AudioController {
         let capture = {
             let running = running.clone();
             let app = app.clone();
-            thread::spawn(move || capture_loop(tx, running, app))
+            thread::spawn(move || capture_loop(tx, running, app, device))
         };
         let worker = {
             let running = running.clone();
@@ -112,9 +189,14 @@ fn fail(app: &AppHandle, running: &AtomicBool, msg: impl Into<String>) {
     running.store(false, Ordering::Relaxed);
 }
 
-fn capture_loop(tx: Sender<Msg>, running: Arc<AtomicBool>, app: AppHandle) {
+fn capture_loop(
+    tx: Sender<Msg>,
+    running: Arc<AtomicBool>,
+    app: AppHandle,
+    device_name: Option<String>,
+) {
     let host = cpal::default_host();
-    let Some(device) = host.default_input_device() else {
+    let Some(device) = pick_input_device(&host, device_name.as_deref()) else {
         fail(
             &app,
             &running,
@@ -122,6 +204,11 @@ fn capture_loop(tx: Sender<Msg>, running: Arc<AtomicBool>, app: AppHandle) {
         );
         return;
     };
+    let picked = device
+        .id()
+        .map(|id| device_label(&device, &id.to_string()))
+        .unwrap_or_else(|_| "?".into());
+    eprintln!("[sonora:audio] micro: {picked}");
     let supported = match device.default_input_config() {
         Ok(c) => c,
         Err(e) => {
