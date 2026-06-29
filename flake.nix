@@ -79,9 +79,56 @@
         ];
 
         # ---- Frontend (Svelte/Vite) built with bun -----------------------------
-        # Fixed-output derivation: it needs network for `bun install`, so we pin
-        # the hash of the produced `dist/`. Bump `outputHash` whenever the
-        # frontend sources or dependencies change (nix will print the new hash).
+        # Split in two so the pinned hash NO LONGER depends on the app source:
+        #
+        #   bunDeps  — a fixed-output derivation that runs `bun install` (the only
+        #              step needing network). Its inputs are just package.json +
+        #              bun.lock, so its `outputHash` changes ONLY when dependencies
+        #              change — never on an ordinary frontend edit.
+        #   frontend — a normal (sandboxed, networkless) derivation that copies
+        #              bunDeps' node_modules and runs `vite build`. No outputHash,
+        #              so the built `dist/` can change freely with the source.
+        #
+        # node_modules contains arch-specific binaries (@esbuild/*, @rollup/*), so
+        # the deps hash is per-system. Fill a system below after its first build:
+        # nix prints the correct `got:` value on mismatch (lib.fakeHash forces it).
+        bunDepsSrc = lib.fileset.toSource {
+          root = ./.;
+          fileset = lib.fileset.unions [ ./package.json ./bun.lock ];
+        };
+
+        bunDepsHash = {
+          x86_64-linux = "sha256-npSeLijwMEBl+gAqgz2i92GXfjGFNjAumNIA/ZZ1IX8=";
+        }.${system} or lib.fakeHash;
+
+        bunDeps = pkgs.stdenvNoCC.mkDerivation {
+          pname = "sonora-frontend-deps";
+          inherit version;
+          src = bunDepsSrc;
+          nativeBuildInputs = [ pkgs.bun pkgs.nodejs_22 pkgs.cacert ];
+          dontConfigure = true;
+          SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+          buildPhase = ''
+            runHook preBuild
+            export HOME="$TMPDIR"
+            bun install --frozen-lockfile --no-progress
+            runHook postBuild
+          '';
+          # NB: do NOT patchShebangs here — a fixed-output derivation must not
+          # reference store paths (the patched shebang points at nix's node). We
+          # patch in the `frontend` build instead, which keeps this hash stable
+          # across nixpkgs/node bumps too.
+          installPhase = ''
+            runHook preInstall
+            rm -rf node_modules/.cache
+            cp -r node_modules "$out"
+            runHook postInstall
+          '';
+          outputHashMode = "recursive";
+          outputHashAlgo = "sha256";
+          outputHash = bunDepsHash;
+        };
+
         frontendSrc = lib.fileset.toSource {
           root = ./.;
           fileset = lib.fileset.unions [
@@ -100,15 +147,16 @@
           pname = "sonora-frontend";
           inherit version;
           src = frontendSrc;
-          nativeBuildInputs = [ pkgs.bun pkgs.nodejs_22 pkgs.cacert ];
+          nativeBuildInputs = [ pkgs.bun pkgs.nodejs_22 ];
           dontConfigure = true;
-          SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+          # No network here: dependencies come from the bunDeps FOD above.
           buildPhase = ''
             runHook preBuild
             export HOME="$TMPDIR"
-            bun install --frozen-lockfile --no-progress
-            # Vite's bin uses a `#!/usr/bin/env node` shebang, which fails in the
-            # sandbox (no /usr/bin/env) — rewrite the dep shebangs to nix node.
+            export DO_NOT_TRACK=1
+            cp -r ${bunDeps} node_modules
+            chmod -R u+w node_modules
+            # Sandbox has no /usr/bin/env — point dep bin shebangs at nix node.
             patchShebangs node_modules
             bun run build
             runHook postBuild
@@ -118,9 +166,6 @@
             cp -r dist "$out"
             runHook postInstall
           '';
-          outputHashMode = "recursive";
-          outputHashAlgo = "sha256";
-          outputHash = "sha256-9QTv38BKyDdIB1ACq2AiLuHfSk2yVtsh4etIKHLVHCU=";
         };
 
         # Desktop launcher entry (menu / app grid integration).
@@ -237,6 +282,7 @@
         packages.default = sonora;
         packages.sonora = sonora;
         packages.frontend = frontend;
+        packages.frontend-deps = bunDeps;
 
         apps.default = {
           type = "app";
