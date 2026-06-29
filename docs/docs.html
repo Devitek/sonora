@@ -109,6 +109,13 @@
             Si le clic droit ne suffit pas, vous pouvez lever la mise en quarantaine :
             <pre><code>xattr -dr com.apple.quarantine /Applications/Sonora.app</code></pre>
           </div>
+          <div class="note tip">
+            <strong>Permissions macOS</strong> — la <strong>dictée</strong> demande l'accès au <strong>micro</strong>
+            au premier enregistrement. Pour « <strong>Coller au curseur</strong> » (saisie automatique du texte),
+            macOS exige en plus l'<strong>Accessibilité</strong> : <em>Réglages Système → Confidentialité et sécurité
+            → Accessibilité</em>, puis activez <strong>Sonora</strong> (macOS ne le propose pas toujours
+            automatiquement — ajoutez l'app manuellement si besoin).
+          </div>
 
           <h3>🪟 Windows</h3>
           <ol>
@@ -116,6 +123,10 @@
             <li>Lancez-le. SmartScreen peut prévenir d'un éditeur inconnu : <strong>Informations complémentaires → Exécuter quand même</strong>.</li>
             <li>Suivez l'assistant, puis lancez Sonora depuis le menu Démarrer.</li>
           </ol>
+          <div class="note">
+            <strong>Micro Windows</strong> — si la dictée ne capte rien, activez <em>Paramètres → Confidentialité
+            et sécurité → Microphone → « Autoriser les applications de bureau à accéder à votre micro »</em>.
+          </div>
 
           <h3>🐧 Linux</h3>
           <p><strong>AppImage</strong> (universel) :</p>
@@ -335,7 +346,10 @@ bind = SUPER, V, exec, sonora toggle</code></pre>
           <p>Vérifiez le fournisseur sélectionné et la clé associée. Pour Gemini, la clé doit commencer par <code>AIza</code> (et non <code>AQ.</code>). Vérifiez aussi votre quota chez le fournisseur.</p>
 
           <h3>Pas de son / la waveform ne bouge pas</h3>
-          <p>Autorisez l'accès au micro (macOS : <em>Réglages Système → Confidentialité → Micro</em>). Vérifiez le bon périphérique d'entrée au niveau de l'OS.</p>
+          <p>Autorisez l'accès au micro : <strong>macOS</strong> → <em>Réglages Système → Confidentialité et sécurité → Microphone</em> ; <strong>Windows</strong> → <em>Paramètres → Confidentialité et sécurité → Microphone → « Autoriser les applications de bureau… »</em>. Vérifiez aussi le bon périphérique d'entrée au niveau de l'OS.</p>
+
+          <h3>« Coller au curseur » ne tape rien sur macOS</h3>
+          <p>La saisie automatique au curseur synthétise des frappes clavier, ce qui exige la permission <strong>Accessibilité</strong> : <em>Réglages Système → Confidentialité et sécurité → Accessibilité</em>, puis activez <strong>Sonora</strong>. macOS ne propose pas toujours la pop‑up — ajoutez l'app manuellement et relancez‑la.</p>
 
           <h3>macOS : « développeur non identifié »</h3>
           <p>Faites un <strong>clic droit → Ouvrir</strong> sur l'app, ou levez la quarantaine : <code>xattr -dr com.apple.quarantine /Applications/Sonora.app</code>.</p>
