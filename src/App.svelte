@@ -12,13 +12,11 @@
     getAutoType,
     setAutoType,
     getTheme,
-    setTheme,
     getBarPosition,
     setBarPosition,
     type BarPosition,
     type ThemePref,
   } from "./lib/settings";
-  import Select from "./lib/Select.svelte";
   import {
     EVENT_CHANNEL,
     CONTROL_CHANNEL,
@@ -42,20 +40,14 @@
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
   let autoType = $state(false);
 
-  // Options dropdown
+  // Options dropdown (history + quick toggles; settings live in their own window)
   let menuOpen = $state(false);
-  let menuTab = $state<"history" | "settings">("history");
 
   let settings = $state<Settings>({ provider: "gemini" });
-  let apiKey = $state("");
-  let hasKey = $state(false);
-  let settingsMsg = $state("");
   /** true once a usable transcription config resolves (drives onboarding). */
   let configured = $state(true);
   let cleaning = $state(false);
   let procLabel = $state("Reformulation…");
-  let cleanupKey = $state("");
-  let hasCleanupKey = $state(false);
   let promptMenuOpen = $state(false);
   const prompts = $derived(settings.prompts ?? []);
 
@@ -69,42 +61,7 @@
     document.documentElement.setAttribute("data-theme", effectiveTheme);
   });
 
-  const PROVIDERS = [
-    { id: "gemini", label: "Gemini Live (streaming)" },
-    { id: "mistral", label: "Mistral (Voxtral)" },
-    { id: "openai", label: "OpenAI Whisper" },
-    { id: "groq", label: "Groq Whisper (rapide)" },
-    { id: "openai-compatible", label: "OpenAI-compatible" },
-    { id: "whisper-local", label: "Whisper local (offline)" },
-  ];
-  const CLEANUP_ENGINES = [
-    { id: "gemini", label: "Gemini" },
-    { id: "mistral", label: "Mistral" },
-    { id: "groq", label: "Groq (rapide)" },
-    { id: "openai", label: "OpenAI" },
-    { id: "openai-compatible", label: "OpenAI-compatible (local…)" },
-  ];
-  const CLEANUP_MODEL_PLACEHOLDER: Record<string, string> = {
-    gemini: "gemini-2.5-flash",
-    mistral: "mistral-small-latest",
-    groq: "llama-3.3-70b-versatile",
-    openai: "gpt-4o-mini",
-    "openai-compatible": "nom du modèle",
-  };
-  const MODEL_PLACEHOLDER: Record<string, string> = {
-    gemini: "gemini-2.5-flash-native-audio-latest",
-    mistral: "voxtral-mini-latest",
-    openai: "whisper-1",
-    groq: "whisper-large-v3",
-    "openai-compatible": "whisper-1",
-    "whisper-local": "",
-  };
-  const provider = $derived(settings.provider ?? "gemini");
-  const needsKey = $derived(
-    ["gemini", "mistral", "openai", "groq", "openai-compatible"].includes(provider),
-  );
   const cleanupEnabled = $derived(settings.cleanup_enabled === true);
-  const cleanupProvider = $derived(settings.cleanup_provider ?? "gemini");
 
   const listening = $derived(recState === "listening" || recState === "starting");
   const finalsText = $derived(finals.join(" ").trim());
@@ -231,10 +188,8 @@
       partial = "";
       return;
     }
-    // settings / history: open the dropdown with realistic config + data
+    // history: open the bar dropdown with realistic data
     autoType = true;
-    hasKey = true;
-    hasCleanupKey = true;
     settings = {
       provider: "gemini",
       language: "fr",
@@ -246,14 +201,11 @@
       ],
     };
     menuOpen = true;
-    menuTab = mode === "history" ? "history" : "settings";
-    if (mode === "history") {
-      history = [
-        { id: "h1", text: "Peux-tu préparer un résumé de la réunion de ce matin ?", createdAt: Date.now() - 1000 * 60 * 7 },
-        { id: "h2", text: "Ajouter une section FAQ à la documentation du projet.", createdAt: Date.now() - 1000 * 60 * 60 * 3 },
-        { id: "h3", text: "Réserve une salle pour la rétro de vendredi après-midi.", createdAt: Date.now() - 1000 * 60 * 60 * 27 },
-      ];
-    }
+    history = [
+      { id: "h1", text: "Peux-tu préparer un résumé de la réunion de ce matin ?", createdAt: Date.now() - 1000 * 60 * 7 },
+      { id: "h2", text: "Ajouter une section FAQ à la documentation du projet.", createdAt: Date.now() - 1000 * 60 * 60 * 3 },
+      { id: "h3", text: "Réserve une salle pour la rétro de vendredi après-midi.", createdAt: Date.now() - 1000 * 60 * 60 * 27 },
+    ];
   }
 
   onMount(() => {
@@ -339,6 +291,15 @@
       handleControl(ev.action),
     );
 
+    // The dedicated Settings window broadcasts changes — reload what the bar
+    // depends on (prompts, cleanup/auto-type toggles, theme, configured-state).
+    const unlistenSettings = listen("sonora://settings-changed", () => {
+      void loadSettings();
+      void refreshConfigured();
+      void getAutoType().then((v) => (autoType = v));
+      void getTheme().then((v) => (theme = v));
+    });
+
     // Replay a first-launch CLI action (e.g. `transcript toggle`).
     void invoke<string | null>("take_pending_action").then((a) => {
       if (a) handleControl(a as ControlAction);
@@ -349,6 +310,7 @@
       window.removeEventListener("keydown", onKey);
       void unlistenEvents.then((fn) => fn());
       void unlistenControl.then((fn) => fn());
+      void unlistenSettings.then((fn) => fn());
       unlistenMoved?.();
       clearTimeout(savePosTimer);
     };
@@ -443,17 +405,6 @@
     await runTransform(p.prompt, finalsText);
   }
 
-  function addPrompt() {
-    settings.prompts = [
-      ...(settings.prompts ?? []),
-      { id: crypto.randomUUID(), name: "", prompt: "" },
-    ];
-  }
-
-  function removePrompt(id: string) {
-    settings.prompts = (settings.prompts ?? []).filter((p) => p.id !== id);
-  }
-
   /** Persist the just-finished session (called when the backend goes idle). */
   async function finalizeSession() {
     let text = finalsText;
@@ -504,6 +455,7 @@
   async function toggleAutoType() {
     autoType = !autoType;
     await setAutoType(autoType);
+    void invoke("broadcast_settings_changed");
   }
 
   async function toggleCleanup() {
@@ -511,11 +463,7 @@
     await invoke("save_settings", { settings: $state.snapshot(settings) }).catch(
       (e) => (errorMsg = String(e)),
     );
-  }
-
-  async function chooseTheme(v: ThemePref) {
-    theme = v;
-    await setTheme(v);
+    void invoke("broadcast_settings_changed");
   }
 
   async function loadSettings() {
@@ -523,16 +471,6 @@
     settings = s && Object.keys(s).length ? s : { provider: "gemini" };
     if (!settings.provider) settings.provider = "gemini";
     if (!settings.prompts) settings.prompts = [];
-    await refreshHasKey();
-    await refreshHasCleanupKey();
-  }
-
-  async function refreshHasKey() {
-    hasKey = await invoke<boolean>("has_api_key", { provider: provider });
-  }
-
-  async function refreshHasCleanupKey() {
-    hasCleanupKey = await invoke<boolean>("has_api_key", { provider: "cleanup" });
   }
 
   async function refreshConfigured() {
@@ -544,39 +482,11 @@
     if (menuOpen) void loadSettings();
   }
 
+  /** Open the dedicated Settings window (it broadcasts changes back to us). */
   function openSettings() {
-    menuOpen = true;
-    menuTab = "settings";
-    void loadSettings();
-  }
-
-  function openHistory() {
-    menuOpen = true;
-    menuTab = "history";
-  }
-
-  async function saveSettings() {
-    await invoke("save_settings", { settings: $state.snapshot(settings) });
-    if (apiKey) {
-      await invoke("save_api_key", { provider: provider, key: apiKey });
-      apiKey = "";
-      await refreshHasKey();
-    }
-    if (cleanupKey) {
-      await invoke("save_api_key", { provider: "cleanup", key: cleanupKey });
-      cleanupKey = "";
-      await refreshHasCleanupKey();
-    }
-    await refreshConfigured();
-    settingsMsg = "Enregistré ✓";
-    setTimeout(() => (settingsMsg = ""), 1500);
-  }
-
-  async function clearKey() {
-    await invoke("save_api_key", { provider: provider, key: "" });
-    apiKey = "";
-    await refreshHasKey();
-    await refreshConfigured();
+    promptMenuOpen = false;
+    menuOpen = false;
+    void invoke("open_settings");
   }
 
   async function copyEntry(entry: HistoryEntry) {
@@ -805,178 +715,33 @@
           </button>
         </div>
 
-        <!-- tabs -->
-        <div class="tabs">
-          <button class="tab" class:active={menuTab === "history"} onclick={() => (menuTab = "history")}>Historique</button>
-          <button class="tab" class:active={menuTab === "settings"} onclick={() => (menuTab = "settings")}>Réglages</button>
+        <!-- history (settings now live in their own window) -->
+        <div class="tab-body">
+          {#if history.length === 0}
+            <p class="placeholder">Aucune dictée enregistrée.</p>
+          {:else}
+            <div class="history-head">
+              <span>{history.length} entrée{history.length > 1 ? "s" : ""}</span>
+              <button class="link" onclick={clearHistory}>Tout effacer</button>
+            </div>
+            <ul class="history-list">
+              {#each history as entry (entry.id)}
+                <li class="history-item">
+                  <button class="entry-text" title="Copier" onclick={() => copyEntry(entry)}>
+                    <span class="entry-time">{fmtTime(entry.createdAt)}</span>
+                    <span class="entry-body">{entry.text}</span>
+                  </button>
+                  <button class="entry-del" title="Supprimer" onclick={() => deleteEntry(entry.id)}>✕</button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
         </div>
 
-        {#if menuTab === "history"}
-          <div class="tab-body">
-            {#if history.length === 0}
-              <p class="placeholder">Aucune dictée enregistrée.</p>
-            {:else}
-              <div class="history-head">
-                <span>{history.length} entrée{history.length > 1 ? "s" : ""}</span>
-                <button class="link" onclick={clearHistory}>Tout effacer</button>
-              </div>
-              <ul class="history-list">
-                {#each history as entry (entry.id)}
-                  <li class="history-item">
-                    <button class="entry-text" title="Copier" onclick={() => copyEntry(entry)}>
-                      <span class="entry-time">{fmtTime(entry.createdAt)}</span>
-                      <span class="entry-body">{entry.text}</span>
-                    </button>
-                    <button class="entry-del" title="Supprimer" onclick={() => deleteEntry(entry.id)}>✕</button>
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-          </div>
-        {:else}
-          <div class="tab-body">
-            <!-- Thème -->
-            <div class="field">
-              <span>Thème</span>
-              <div class="seg">
-                <button class="seg-btn" class:active={theme === "system"} onclick={() => chooseTheme("system")}>Système</button>
-                <button class="seg-btn" class:active={theme === "light"} onclick={() => chooseTheme("light")}>Clair</button>
-                <button class="seg-btn" class:active={theme === "dark"} onclick={() => chooseTheme("dark")}>Sombre</button>
-              </div>
-            </div>
-
-            <div class="field">
-              <span>Fournisseur</span>
-              <Select
-                bind:value={settings.provider}
-                options={PROVIDERS}
-                onChange={() => {
-                  apiKey = "";
-                  void refreshHasKey();
-                }}
-              />
-            </div>
-
-            {#if needsKey}
-              <label class="field">
-                <span>Clé API {hasKey ? "· enregistrée ✓" : ""}</span>
-                <input
-                  type="password"
-                  bind:value={apiKey}
-                  placeholder={hasKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
-                />
-              </label>
-              {#if provider === "gemini" && apiKey.startsWith("AQ.")}
-                <p class="warn">
-                  ⚠ Ceci ressemble à un jeton temporaire (Live) qui expire vite. Utilise une clé
-                  API AI Studio (commence par « AIza ») : aistudio.google.com/apikey
-                </p>
-              {/if}
-              {#if hasKey}
-                <button class="link" onclick={clearKey}>Supprimer la clé enregistrée</button>
-              {/if}
-            {/if}
-
-            <label class="field">
-              <span>Modèle (optionnel)</span>
-              <input type="text" bind:value={settings.model} placeholder={MODEL_PLACEHOLDER[provider] || "défaut"} />
-            </label>
-
-            {#if provider === "openai-compatible"}
-              <label class="field">
-                <span>URL de base</span>
-                <input type="text" bind:value={settings.base_url} placeholder="http://localhost:8000/v1" />
-              </label>
-            {/if}
-
-            {#if provider === "whisper-local"}
-              <label class="field">
-                <span>Chemin du modèle ggml</span>
-                <input type="text" bind:value={settings.whisper_model} placeholder="/chemin/ggml-base.bin" />
-              </label>
-            {/if}
-
-            <label class="field">
-              <span>Langue (optionnel)</span>
-              <input type="text" bind:value={settings.language} placeholder="fr · vide = auto" />
-            </label>
-
-            <div class="section-sep">Nettoyage des hésitations</div>
-
-            <label class="field check">
-              <input type="checkbox" bind:checked={settings.cleanup_enabled} />
-              <span>Nettoyer automatiquement (retirer « euh », faux départs…)</span>
-            </label>
-
-            {#if settings.cleanup_enabled}
-              <div class="field">
-                <span>Moteur de nettoyage</span>
-                <Select bind:value={settings.cleanup_provider} options={CLEANUP_ENGINES} />
-              </div>
-              <label class="field">
-                <span>Modèle de nettoyage</span>
-                <input
-                  type="text"
-                  bind:value={settings.cleanup_model}
-                  placeholder={CLEANUP_MODEL_PLACEHOLDER[cleanupProvider] ?? "défaut"}
-                />
-              </label>
-              {#if cleanupProvider === "gemini"}
-                <p class="hint">Utilise la clé Gemini configurée plus haut.</p>
-              {:else}
-                {#if cleanupProvider === "openai-compatible"}
-                  <label class="field">
-                    <span>URL de base</span>
-                    <input type="text" bind:value={settings.cleanup_base_url} placeholder="http://localhost:8000/v1" />
-                  </label>
-                {/if}
-                <label class="field">
-                  <span>Clé API nettoyage {hasCleanupKey ? "· enregistrée ✓" : ""}</span>
-                  <input
-                    type="password"
-                    bind:value={cleanupKey}
-                    placeholder={hasCleanupKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
-                  />
-                </label>
-              {/if}
-            {/if}
-
-            <div class="section-sep">Prompts de reformulation</div>
-            <p class="hint">
-              Appliquez-les à une dictée via le bouton ✦. Ils utilisent le moteur configuré
-              ci-dessus.
-            </p>
-            {#each settings.prompts ?? [] as p (p.id)}
-              <div class="prompt-row">
-                <div class="prompt-head">
-                  <input
-                    class="prompt-name"
-                    type="text"
-                    bind:value={p.name}
-                    placeholder="Nom (ex. Formel, Commande terminal…)"
-                  />
-                  <button class="prompt-del" title="Supprimer" onclick={() => removePrompt(p.id)}
-                    >✕</button
-                  >
-                </div>
-                <textarea
-                  class="prompt-text"
-                  rows="2"
-                  bind:value={p.prompt}
-                  placeholder="Instruction, ex. « Réécris ce texte de manière formelle et professionnelle. »"
-                ></textarea>
-              </div>
-            {/each}
-            <button class="add-prompt" onclick={addPrompt}>+ Ajouter un prompt</button>
-
-            <div class="settings-actions">
-              {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
-              <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
-            </div>
-
-            <button class="hide-row" onclick={hideWindow}>Masquer la fenêtre (reste dans le tray)</button>
-          </div>
-        {/if}
+        <div class="panel-foot">
+          <button class="foot-btn settings-btn" onclick={openSettings}>⚙ Réglages…</button>
+          <button class="foot-btn" onclick={hideWindow}>Masquer</button>
+        </div>
       </div>
     {/if}
   </div>
@@ -1268,33 +1033,6 @@
   .quick-card.on .q-state {
     color: var(--accent);
   }
-  .tabs {
-    display: flex;
-    gap: 18px;
-    padding: 0 14px;
-    border-bottom: 1px solid var(--divider);
-  }
-  .tab {
-    position: relative;
-    padding: 9px 2px;
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--fg-dim);
-  }
-  .tab.active {
-    color: var(--fg);
-    font-weight: 600;
-  }
-  .tab.active::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    height: 2px;
-    border-radius: 2px;
-    background: var(--accent);
-  }
   .tab-body {
     padding: 12px;
   }
@@ -1376,185 +1114,30 @@
     color: var(--danger);
   }
 
-  /* settings */
-  .field {
+  /* panel footer: open settings window + hide bar */
+  .panel-foot {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-bottom: 11px;
-    font-size: 11px;
-    color: var(--fg-dim);
-  }
-  .field > span {
-    padding-left: 1px;
-  }
-  .field input:not([type="checkbox"]) {
-    appearance: none;
-    -webkit-appearance: none;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 9px 11px;
-    color: var(--fg);
-    font-size: 13px;
-    outline: none;
-    width: 100%;
-  }
-  .field input:focus {
-    border-color: var(--accent);
-  }
-  .seg {
-    display: flex;
-    gap: 3px;
-    padding: 3px;
-    border-radius: 11px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-  }
-  .seg-btn {
-    flex: 1;
-    padding: 8px 0;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--fg-dim);
-    transition: all 0.15s ease;
-  }
-  .seg-btn.active {
-    color: var(--fg);
-    background: var(--seg-active);
-    box-shadow: var(--seg-shadow);
-  }
-  .section-sep {
-    margin: 6px 0 10px;
-    padding-top: 12px;
+    gap: 8px;
+    padding: 10px 12px 12px;
     border-top: 1px solid var(--divider);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--fg-dim);
   }
-  .field.check {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    color: var(--fg);
-    font-size: 13px;
-  }
-  .field.check input {
-    width: auto;
-    accent-color: var(--accent-strong);
-  }
-  .hint {
-    font-size: 12px;
-    color: var(--fg-dim);
-    margin: -4px 0 10px;
-  }
-  .warn {
-    font-size: 12px;
-    color: #d6a206;
-    line-height: 1.45;
-    margin: -2px 0 10px;
-  }
-  .settings-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 4px;
-  }
-  .ok-msg {
-    color: var(--ok);
-    font-size: 12px;
-  }
-  .save-btn {
-    background: linear-gradient(140deg, var(--accent), #6d5cff);
-    color: #fff;
-    border-radius: 10px;
-    padding: 9px 18px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 8px 20px rgba(124, 92, 255, 0.3);
-  }
-  .save-btn:hover {
-    filter: brightness(1.06);
-  }
-  .prompt-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 10px;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--panel);
-  }
-  .prompt-head {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .prompt-name,
-  .prompt-text {
-    appearance: none;
-    -webkit-appearance: none;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 9px;
-    color: var(--fg);
-    font-size: 13px;
-    font-family: inherit;
-  }
-  .prompt-name {
+  .foot-btn {
     flex: 1;
-    width: 100%;
-  }
-  .prompt-text {
-    width: 100%;
-    resize: vertical;
-    min-height: 46px;
-    line-height: 1.45;
-  }
-  .prompt-name:focus,
-  .prompt-text:focus {
-    border-color: var(--accent);
-    outline: none;
-  }
-  .prompt-del {
-    flex: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    color: var(--fg-dim);
-    background: var(--panel-2);
-  }
-  .prompt-del:hover {
-    color: var(--danger);
-  }
-  .add-prompt {
-    width: 100%;
     padding: 9px;
-    border-radius: 9px;
-    border: 1px dashed var(--border);
-    color: var(--fg-dim);
-    font-size: 13px;
-    margin-bottom: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg-mid);
+    font-size: 12.5px;
+    font-weight: 500;
   }
-  .add-prompt:hover {
+  .foot-btn:hover {
     color: var(--fg);
     border-color: var(--accent-soft-border);
   }
-  .hide-row {
-    width: 100%;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--divider);
-    text-align: center;
-    font-size: 12px;
-    color: var(--fg-dim);
-  }
-  .hide-row:hover {
-    color: var(--fg);
+  .foot-btn.settings-btn {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--on-accent-text);
   }
 </style>

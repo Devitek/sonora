@@ -16,7 +16,7 @@ use providers::{ProviderConfig, SessionController};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, State,
+    AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder,
 };
 
 /// Control channel: backend-initiated actions (global hotkey / CLI / tray)
@@ -165,6 +165,34 @@ fn resize_bar(app: AppHandle, height: u32) {
     }
 }
 
+/// Open (or focus) the dedicated Settings window. Keeping settings in their own
+/// normal, resizable window avoids resizing/flickering the floating bar.
+#[tauri::command]
+fn open_settings(app: AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("settings") {
+        let _ = win.unminimize();
+        let _ = win.show();
+        let _ = win.set_focus();
+        return Ok(());
+    }
+    WebviewWindowBuilder::new(&app, "settings", WebviewUrl::App("index.html".into()))
+        .title("Sonora — Réglages")
+        .inner_size(480.0, 660.0)
+        .min_inner_size(380.0, 420.0)
+        .resizable(true)
+        .focused(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Notify all windows that persisted settings changed, so the bar can reload
+/// (provider, prompts, auto-type, cleanup, theme, configured-state).
+#[tauri::command]
+fn broadcast_settings_changed(app: AppHandle) {
+    let _ = app.emit("sonora://settings-changed", ());
+}
+
 /// Show the floating bar WITHOUT stealing focus, so the app the user is in
 /// keeps it (dictation-to-cursor works). Clicking the bar focuses it naturally.
 fn show_window(app: &AppHandle) {
@@ -225,10 +253,13 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Closing the window only hides it — quit happens from the tray.
+            // The floating bar only hides on close (it lives in the tray);
+            // secondary windows (e.g. Settings) close/destroy normally.
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let _ = window.hide();
-                api.prevent_close();
+                if window.label() == "main" {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -237,6 +268,8 @@ pub fn run() {
             stop_recording,
             hide_window,
             resize_bar,
+            open_settings,
+            broadcast_settings_changed,
             take_pending_action,
             type_text,
             cleanup_text,

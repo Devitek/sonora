@@ -35,7 +35,7 @@ shoot() { # <name> <url-query> <w> <h> <settleMs>
 
 shoot bar       "shot=bar"               760 460  1100
 shoot result    "shot=result"            760 320  800
-shoot settings  "shot=settings"          760 1180 900
+shoot settings  "view=settings"          480 680  1100
 shoot history   "shot=history"           760 1180 900
 shoot bar-light "shot=bar&theme=light"   760 460  1100
 
