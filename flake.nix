@@ -120,7 +120,7 @@
           '';
           outputHashMode = "recursive";
           outputHashAlgo = "sha256";
-          outputHash = "sha256-vh9hyphiyms2wgdiWNJduEXXFfmuns5UvsEF1/SDP6s=";
+          outputHash = "sha256-9QTv38BKyDdIB1ACq2AiLuHfSk2yVtsh4etIKHLVHCU=";
         };
 
         # Desktop launcher entry (menu / app grid integration).
