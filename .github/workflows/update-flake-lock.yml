@@ -32,10 +32,14 @@ jobs:
       - name: Update flake inputs
         run: nix flake update
 
+      # If nixpkgs bumped `bun`, the frontend-deps FOD output (and thus its hash)
+      # changes — re-pin it automatically so the refreshed lock stays buildable.
+      - name: Re-pin Nix bunDepsHash
+        run: bash scripts/sync-bun-deps-hash.sh
+
       # Validate the refreshed lock here, since the PR (GITHUB_TOKEN) won't run
-      # the Nix CI. A failure here usually means nixpkgs bumped `bun`, so the
-      # `bunDepsHash` in flake.nix must be re-pinned (the correct value is in the
-      # `got:` line of the build log).
+      # the Nix CI. continue-on-error so a genuine breakage still opens the PR
+      # (with the outcome surfaced in its body) for a human to look at.
       - name: Validate (nix build .#default)
         id: build
         continue-on-error: true
@@ -44,7 +48,9 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
         with:
-          add-paths: flake.lock
+          add-paths: |
+            flake.lock
+            flake.nix
           branch: automation/flake-lock
           delete-branch: true
           base: main

@@ -48,12 +48,25 @@ jobs:
           bun run check
           bun run build
 
+      # A bun.lock change moves the frontend-deps FOD output, so re-pin its hash
+      # and confirm the Nix package still builds — otherwise merging this PR
+      # would break the NixOS build.
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Re-pin Nix bunDepsHash
+        run: bash scripts/sync-bun-deps-hash.sh
+      - name: Validate Nix build
+        run: nix build .#default -L
+
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
         with:
           add-paths: |
             package.json
             bun.lock
+            flake.nix
           branch: automation/bun-update
           delete-branch: true
           base: main
