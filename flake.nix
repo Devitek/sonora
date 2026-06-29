@@ -12,6 +12,9 @@
         pkgs = import nixpkgs { inherit system; };
         lib = pkgs.lib;
         version = (builtins.fromTOML (builtins.readFile ./src-tauri/Cargo.toml)).package.version;
+        # Directory path (not a path literal per-file) so we can append names
+        # containing characters like `@` (e.g. 128x128@2x.png) in strings.
+        iconsDir = ./src-tauri/icons;
 
         # Runtime/link libraries required by Tauri (WebKitGTK), the system tray,
         # clipboard (X11/Wayland), and audio capture (ALSA/PipeWire via cpal).
@@ -120,6 +123,20 @@
           outputHash = "sha256-vh9hyphiyms2wgdiWNJduEXXFfmuns5UvsEF1/SDP6s=";
         };
 
+        # Desktop launcher entry (menu / app grid integration).
+        desktopItem = pkgs.makeDesktopItem {
+          name = "sonora";
+          desktopName = "Sonora";
+          genericName = "Dictée vocale";
+          comment = "Barre flottante de transcription vocale en temps réel";
+          exec = "sonora";
+          icon = "sonora";
+          terminal = false;
+          startupNotify = false;
+          categories = [ "Utility" "Audio" "AudioVideo" ];
+          keywords = [ "speech" "dictation" "transcription" "voice" "stt" ];
+        };
+
         # ---- The app: Rust binary with the frontend embedded -------------------
         sonora = pkgs.rustPlatform.buildRustPackage {
           pname = "sonora";
@@ -135,7 +152,10 @@
             rustPlatform.bindgenHook # whisper-rs bindgen (libclang)
             wrapGAppsHook3
             gobject-introspection
+            copyDesktopItems # installs `desktopItems` into share/applications
           ];
+
+          desktopItems = [ desktopItem ];
 
           buildInputs = with pkgs; [
             glib
@@ -172,6 +192,15 @@
             rm -rf dist
             cp -r ${frontend} dist
             chmod -R u+w dist
+          '';
+
+          # Install hicolor icons (+ a scalable SVG) so the .desktop entry shows
+          # an icon in app launchers / the GNOME-Shell app grid.
+          postInstall = ''
+            install -Dm644 "${iconsDir}/32x32.png"      "$out/share/icons/hicolor/32x32/apps/sonora.png"
+            install -Dm644 "${iconsDir}/128x128.png"    "$out/share/icons/hicolor/128x128/apps/sonora.png"
+            install -Dm644 "${iconsDir}/128x128@2x.png" "$out/share/icons/hicolor/256x256/apps/sonora.png"
+            install -Dm644 "${./brand/logo.svg}"        "$out/share/icons/hicolor/scalable/apps/sonora.svg"
           '';
 
           doCheck = false;
