@@ -1,6 +1,11 @@
 # Automated dependency updates. Dependabot opens (and, when security alerts
 # fire, auto-patches) PRs for each ecosystem. Grouped + weekly to limit noise.
-# Flake (nixpkgs) inputs are handled separately by update-flake-lock.yml.
+#
+# NOTE: the frontend (bun) is intentionally NOT here. Dependabot's npm updater
+# only rewrites package.json and leaves bun.lock untouched, which breaks the
+# frozen-lockfile install + the Nix build. Bun deps are handled by
+# update-bun.yml (which bumps package.json + bun.lock together). Flake/nixpkgs
+# inputs are handled by update-flake-lock.yml.
 version: 2
 updates:
   # ---- Rust crates (Tauri backend) -----------------------------------------
@@ -17,22 +22,6 @@ updates:
       prefix: "chore(deps)"
     groups:
       cargo:
-        update-types: ["minor", "patch"]
-
-  # ---- Frontend (bun / package.json + bun.lock) ----------------------------
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Europe/Paris"
-    open-pull-requests-limit: 5
-    labels: ["dependencies", "frontend"]
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      npm:
         update-types: ["minor", "patch"]
 
   # ---- GitHub Actions used by our workflows ---------------------------------

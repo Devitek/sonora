@@ -1,0 +1,69 @@
+name: Update bun dependencies
+
+# Frontend dependency maintenance for bun (Dependabot's npm updater can't keep
+# bun.lock in sync — see dependabot.yml). Weekly: refresh dependencies, keeping
+# package.json AND bun.lock consistent, validate (frozen install + type-check +
+# build), then open a PR. Self-validating, so it needs no extra secret.
+#
+# Default run = in-range updates (safe). Dispatch with `latest: true` to also
+# bump to the newest majors (review carefully — may be breaking).
+on:
+  schedule:
+    - cron: "30 4 * * 1" # Monday 04:30 UTC
+  workflow_dispatch:
+    inputs:
+      latest:
+        description: "Bump to latest majors (bun update --latest)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-bun
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Update dependencies
+        run: |
+          if [ "${{ inputs.latest }}" = "true" ]; then
+            bun update --latest
+          else
+            bun update
+          fi
+
+      # Validate here (the GITHUB_TOKEN PR won't trigger the standard CI): the
+      # lockfile must stay consistent and the app must still type-check + build.
+      - name: Validate (frozen install + check + build)
+        run: |
+          bun install --frozen-lockfile
+          bun run check
+          bun run build
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: |
+            package.json
+            bun.lock
+          branch: automation/bun-update
+          delete-branch: true
+          base: main
+          title: "chore(deps): update bun dependencies"
+          commit-message: "chore(deps): update bun dependencies"
+          labels: |
+            dependencies
+            frontend
+          body: |
+            Mise à jour automatique des dépendances frontend (`bun update${{ inputs.latest == true && ' --latest' || '' }}`).
+
+            `package.json` et `bun.lock` sont mis à jour ensemble. Validé en amont :
+            `bun install --frozen-lockfile`, `bun run check`, `bun run build`.
