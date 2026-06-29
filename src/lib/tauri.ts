@@ -3,8 +3,19 @@
 
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export const isTauri = "__TAURI_INTERNALS__" in window;
+
+/** Start an OS-level window drag (move the floating bar). No-op outside Tauri. */
+export async function dragWindow(): Promise<void> {
+  if (!isTauri) return;
+  try {
+    await getCurrentWindow().startDragging();
+  } catch (e) {
+    console.error("startDragging failed:", e);
+  }
+}
 
 export async function invoke<T>(
   cmd: string,

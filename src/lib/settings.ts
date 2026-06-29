@@ -34,6 +34,39 @@ export async function setAutoType(value: boolean): Promise<void> {
   }
 }
 
+// --- Floating bar position (so a moved bar stays put across launches) -------
+
+export interface BarPosition {
+  x: number;
+  y: number;
+}
+
+export async function getBarPosition(): Promise<BarPosition | null> {
+  try {
+    if (!isTauri) {
+      const raw = localStorage.getItem("transcript-bar-pos");
+      return raw ? (JSON.parse(raw) as BarPosition) : null;
+    }
+    return (await (await getStore()).get<BarPosition>("barPosition")) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setBarPosition(pos: BarPosition): Promise<void> {
+  try {
+    if (!isTauri) {
+      localStorage.setItem("transcript-bar-pos", JSON.stringify(pos));
+      return;
+    }
+    const store = await getStore();
+    await store.set("barPosition", pos);
+    await store.save();
+  } catch (e) {
+    console.error("bar position save failed:", e);
+  }
+}
+
 // --- Theme preference ------------------------------------------------------
 
 export type ThemePref = "system" | "light" | "dark";

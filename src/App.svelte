@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { invoke, listen } from "./lib/tauri";
+  import { invoke, listen, isTauri, dragWindow } from "./lib/tauri";
+  import {
+    getCurrentWindow,
+    PhysicalPosition,
+    availableMonitors,
+  } from "@tauri-apps/api/window";
   import { copyText } from "./lib/clipboard";
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
   import {
@@ -8,6 +13,9 @@
     setAutoType,
     getTheme,
     setTheme,
+    getBarPosition,
+    setBarPosition,
+    type BarPosition,
     type ThemePref,
   } from "./lib/settings";
   import Select from "./lib/Select.svelte";
@@ -140,6 +148,71 @@
     requestAnimationFrame(measureAndResize);
   });
 
+  // ---- Move the floating bar -------------------------------------------------
+  // Drag from any non-button area of the bar, or hold a modifier (⌘/Alt/Super)
+  // and drag from anywhere (even over buttons) to reposition it. Uses the
+  // OS-level window drag, so it works on macOS, Windows and Linux.
+  function onBarPointerDown(e: PointerEvent) {
+    if (e.button !== 0) return; // left button only
+    const el = e.target as HTMLElement | null;
+    const onControl = el?.closest("button, input, textarea, select, a");
+    const modifier = e.altKey || e.metaKey;
+    if (modifier || !onControl) {
+      e.preventDefault();
+      void dragWindow();
+    }
+  }
+
+  // Persist the bar position so a moved bar stays put across launches.
+  let unlistenMoved: (() => void) | undefined;
+  let canPersistPos = false;
+  let savePosTimer: ReturnType<typeof setTimeout> | undefined;
+
+  async function isOnScreen(p: BarPosition): Promise<boolean> {
+    try {
+      const mons = await availableMonitors();
+      if (!mons.length) return true;
+      return mons.some((m) => {
+        const { position: o, size: s } = m;
+        return (
+          p.x >= o.x - 24 &&
+          p.y >= o.y - 24 &&
+          p.x <= o.x + s.width - 48 &&
+          p.y <= o.y + s.height - 48
+        );
+      });
+    } catch {
+      return true; // best effort — don't block restore on a query failure
+    }
+  }
+
+  async function initBarPosition() {
+    if (!isTauri) return;
+    try {
+      const win = getCurrentWindow();
+      const saved = await getBarPosition();
+      if (
+        saved &&
+        Number.isFinite(saved.x) &&
+        Number.isFinite(saved.y) &&
+        (await isOnScreen(saved))
+      ) {
+        await win.setPosition(new PhysicalPosition(saved.x, saved.y));
+      }
+      // Only start persisting after the restore + initial auto-resize settle, so
+      // the centered default doesn't overwrite the saved spot.
+      setTimeout(() => (canPersistPos = true), 700);
+      unlistenMoved = await win.onMoved(({ payload }) => {
+        if (!canPersistPos) return;
+        clearTimeout(savePosTimer);
+        const { x, y } = payload;
+        savePosTimer = setTimeout(() => void setBarPosition({ x, y }), 400);
+      });
+    } catch (e) {
+      console.error("bar position init failed:", e);
+    }
+  }
+
   /** Seed a realistic UI state for documentation screenshots (see onMount). */
   function seedShot(mode: string) {
     theme = "dark";
@@ -202,6 +275,7 @@
       void getTheme().then((v) => (theme = v));
       void loadSettings();
       void refreshConfigured();
+      void initBarPosition();
     }
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -275,6 +349,8 @@
       window.removeEventListener("keydown", onKey);
       void unlistenEvents.then((fn) => fn());
       void unlistenControl.then((fn) => fn());
+      unlistenMoved?.();
+      clearTimeout(savePosTimer);
     };
   });
 
@@ -599,10 +675,17 @@
   }
 </script>
 
-<main class="surface" data-tauri-drag-region>
+<main class="surface">
   <div class="anchor">
-    <!-- THE BAR -->
-    <div class="bar" data-tauri-drag-region>
+    <!-- THE BAR (drag a non-button area, or ⌘/Alt/Super + drag anywhere, to move it) -->
+    <div
+      class="bar"
+      role="toolbar"
+      tabindex="-1"
+      aria-label="Barre Sonora — glissez pour déplacer"
+      onpointerdown={onBarPointerDown}
+      title="Glissez pour déplacer · ⌘/Alt + glisser depuis n'importe où"
+    >
       <button
         class="rec"
         class:on={listening}
@@ -988,6 +1071,11 @@
     background: var(--surface);
     border: 1px solid var(--surface-border);
     box-shadow: var(--surface-shadow);
+    /* the bar background is a drag handle (buttons reset this to pointer) */
+    cursor: grab;
+  }
+  .bar:active {
+    cursor: grabbing;
   }
   .rec {
     flex: none;
