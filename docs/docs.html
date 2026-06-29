@@ -347,6 +347,18 @@ bind = SUPER, V, exec, sonora toggle</code></pre>
             Sonora le désactive automatiquement depuis la <strong>v0.2.4</strong>. Sur une version antérieure, lancez avec :
           </p>
           <pre><code>WEBKIT_DISABLE_DMABUF_RENDERER=1 ./Sonora_x.y.z_amd64.AppImage</code></pre>
+          <div class="note">
+            <strong>NixOS :</strong> l'AppImage est délicate (système de fichiers non‑FHS, <code>appimage-run</code> via
+            bubblewrap, pilotes Mesa dans <code>/nix/store</code>). Le plus fiable est de
+            <strong>lancer depuis les sources</strong> via le flake (voir
+            <a href="#build">Compiler depuis les sources</a>), qui utilise le WebKitGTK et les pilotes du système.
+            Si tu tiens à l'AppImage, le combo complet (compositing GPU désactivé, sandbox WebKit désactivée) est :
+            <pre><code>nix-shell -p appimage-run --run \
+  "WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+   WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+   WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 \
+   appimage-run ./Sonora_x.y.z_amd64.AppImage"</code></pre>
+          </div>
 
           <h3>Le clic droit / la clé est perdue après mise à jour</h3>
           <p>Les réglages sont liés à l'identifiant d'application. Après une mise à jour majeure changeant cet identifiant, ressaisissez votre clé une fois.</p>
@@ -360,10 +372,15 @@ cd sonora
 bun install
 bun run tauri dev      # développement
 bun run tauri build    # build de production</code></pre>
-          <p><strong>NixOS / Nix</strong> — un flake fournit tout le devshell :</p>
+          <p><strong>NixOS / Nix</strong> — un flake fournit tout le devshell ; c'est aussi la
+            façon <strong>recommandée d'exécuter Sonora sur NixOS</strong> (plutôt que l'AppImage) :</p>
           <pre><code>nix develop
-bash scripts/dev.sh</code></pre>
-          <p>Le binaire de production se trouve dans <code>src-tauri/target/release/sonora</code>.</p>
+bun install
+bun run tauri build                  # binaire -> src-tauri/target/release/sonora
+./src-tauri/target/release/sonora    # à lancer depuis le shell `nix develop`</code></pre>
+          <p>Le binaire de production se trouve dans <code>src-tauri/target/release/sonora</code>.
+            Lancez-le <strong>depuis le shell <code>nix develop</code></strong> pour que les
+            bibliothèques WebKitGTK soient résolues (<code>LD_LIBRARY_PATH</code>).</p>
 
           <div class="cta" style="margin-top: 56px">
             <h2>Une question, un bug, une idée ?</h2>
