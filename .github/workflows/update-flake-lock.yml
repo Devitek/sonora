@@ -1,0 +1,63 @@
+name: Update flake.lock
+
+# Keep the Nix package current (nixpkgs = the bun/rust toolchains and the system
+# libraries the NixOS build links against, so this is also a security-currency
+# job). Weekly: refresh flake inputs, validate the package still builds, and open
+# a PR. Self-validating so it needs no extra secret — the build runs in this job,
+# not on the PR (PRs opened with GITHUB_TOKEN don't trigger other workflows).
+on:
+  schedule:
+    - cron: "0 4 * * 1" # Monday 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-flake-lock
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Update flake inputs
+        run: nix flake update
+
+      # Validate the refreshed lock here, since the PR (GITHUB_TOKEN) won't run
+      # the Nix CI. A failure here usually means nixpkgs bumped `bun`, so the
+      # `bunDepsHash` in flake.nix must be re-pinned (the correct value is in the
+      # `got:` line of the build log).
+      - name: Validate (nix build .#default)
+        id: build
+        continue-on-error: true
+        run: nix build .#default -L
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: flake.lock
+          branch: automation/flake-lock
+          delete-branch: true
+          base: main
+          title: "chore(nix): update flake.lock"
+          commit-message: "chore(nix): update flake.lock"
+          labels: |
+            dependencies
+            nix
+          body: |
+            Mise à jour automatique des entrées du flake (`nix flake update`).
+
+            - Validation `nix build .#default` : **${{ steps.build.outcome }}**
+
+            > Si la validation a échoué, c'est généralement que `nixpkgs` a bumpé
+            > `bun` : mettez à jour `bunDepsHash.x86_64-linux` dans `flake.nix`
+            > (la bonne valeur figure dans la ligne `got:` des logs du job).

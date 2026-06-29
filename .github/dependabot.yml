@@ -1,0 +1,52 @@
+# Automated dependency updates. Dependabot opens (and, when security alerts
+# fire, auto-patches) PRs for each ecosystem. Grouped + weekly to limit noise.
+# Flake (nixpkgs) inputs are handled separately by update-flake-lock.yml.
+version: 2
+updates:
+  # ---- Rust crates (Tauri backend) -----------------------------------------
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "rust"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      cargo:
+        update-types: ["minor", "patch"]
+
+  # ---- Frontend (bun / package.json + bun.lock) ----------------------------
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "frontend"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm:
+        update-types: ["minor", "patch"]
+
+  # ---- GitHub Actions used by our workflows ---------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        update-types: ["minor", "patch"]

@@ -1,0 +1,58 @@
+name: Security audit
+
+# Scan third-party dependencies for known vulnerabilities (RustSec for crates,
+# the npm advisory DB for the bun frontend). Runs weekly (catch newly-disclosed
+# CVEs in unchanged deps), on every PR/push that touches a manifest or lockfile,
+# and on demand. By default only *vulnerabilities* fail the job; advisory
+# warnings (e.g. unmaintained crates) are reported but non-blocking.
+on:
+  schedule:
+    - cron: "0 5 * * 1" # Monday 05:00 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/security-audit.yml"
+  pull_request:
+    paths:
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/security-audit.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo-audit:
+    name: cargo audit (RustSec)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      # Fails on vulnerabilities; unmaintained/unsound are warnings (non-fatal).
+      # Add `--ignore RUSTSEC-XXXX-YYYY` here to silence a vetted advisory.
+      - name: cargo audit
+        run: cargo audit --file src-tauri/Cargo.lock
+
+  bun-audit:
+    name: bun audit (npm advisories)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: bun audit
+        run: bun audit
