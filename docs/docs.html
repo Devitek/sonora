@@ -340,6 +340,14 @@ bind = SUPER, V, exec, sonora toggle</code></pre>
           <h3>L'interface paraît floue ou décalée (Wayland)</h3>
           <p>Sonora force XWayland pour contourner un bug de mise à l'échelle fractionnaire de WebKitGTK. Si l'affichage reste anormal sous un scale fractionnaire (ex. 1.33), essayez un scale entier sur l'écran concerné.</p>
 
+          <h3>Plantage au lancement sous Linux : <code>EGL_BAD_PARAMETER</code></h3>
+          <p>
+            Si l'app s'arrête aussitôt avec <code>Could not create default EGL display: EGL_BAD_PARAMETER. Aborting…</code>
+            (fréquent en VM, sous NixOS, ou sur GPU Intel Arc/Xe récents), c'est le <em>renderer DMABUF</em> de WebKitGTK.
+            Sonora le désactive automatiquement depuis la <strong>v0.2.4</strong>. Sur une version antérieure, lancez avec :
+          </p>
+          <pre><code>WEBKIT_DISABLE_DMABUF_RENDERER=1 ./Sonora_x.y.z_amd64.AppImage</code></pre>
+
           <h3>Le clic droit / la clé est perdue après mise à jour</h3>
           <p>Les réglages sont liés à l'identifiant d'application. Après une mise à jour majeure changeant cet identifiant, ressaisissez votre clé une fois.</p>
 
