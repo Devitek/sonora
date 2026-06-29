@@ -1,6 +1,6 @@
 {
   "name": "sonora",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Sonora — real-time speech-to-text with pluggable models",
   "type": "module",
   "scripts": {
