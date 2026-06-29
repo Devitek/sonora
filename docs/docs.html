@@ -123,6 +123,9 @@
 ./Sonora_x.y.z_amd64.AppImage</code></pre>
           <p><strong>Debian / Ubuntu</strong> (<code>.deb</code>) :</p>
           <pre><code>sudo apt install ./Sonora_x.y.z_amd64.deb</code></pre>
+          <p><strong>NixOS</strong> — package natif via le flake (recommandé sur NixOS plutôt que l'AppImage) :</p>
+          <pre><code>nix run github:Devitek/sonora      # lance directement
+nix profile install github:Devitek/sonora   # installe (entrée de menu + icône)</code></pre>
           <div class="note">
             Pour <strong>taper le texte au curseur</strong> sous Linux, Sonora utilise <code>wtype</code>
             (Wayland) ou <code>xdotool</code> (X11). Installez celui qui correspond à votre session :

@@ -47,6 +47,9 @@
     "linux": {
       "appimage": {
         "bundleMediaFramework": false
+      },
+      "deb": {
+        "desktopTemplate": "sonora.desktop"
       }
     },
     "macOS": {

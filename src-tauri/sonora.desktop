@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name={{name}}
+GenericName=Dictée vocale
+Comment={{comment}}
+Exec={{exec}}
+Icon={{icon}}
+Terminal=false
+Categories=Utility;Audio;AudioVideo;
+Keywords=speech;dictation;transcription;voice;stt;
+StartupNotify=false
