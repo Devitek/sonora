@@ -22,7 +22,7 @@
     "@tsconfig/svelte": "^5",
     "svelte": "^5",
     "svelte-check": "^4",
-    "typescript": "^5",
+    "typescript": "^6",
     "vite": "^6"
   }
 }
