@@ -80,7 +80,15 @@ bun run tauri dev      # développement
 bun run tauri build    # build de production (binaire dans src-tauri/target/release/sonora)
 ```
 
-**NixOS / Nix** — un flake fournit tout le devshell (WebKitGTK, ALSA, cmake, wtype…) :
+**NixOS / Nix** — le flake expose un package natif (recommandé sur NixOS plutôt que
+l'AppImage, qui se heurte aux pilotes EGL/bubblewrap) :
+
+```bash
+nix run github:Devitek/sonora      # lance directement
+nix build github:Devitek/sonora    # -> ./result/bin/sonora
+```
+
+…et un devshell complet (WebKitGTK, ALSA, cmake, wtype…) pour le développement :
 
 ```bash
 nix develop
