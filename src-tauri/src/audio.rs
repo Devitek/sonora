@@ -254,11 +254,13 @@ fn build_stream(
     tx: Sender<Msg>,
 ) -> Result<cpal::Stream, String> {
     let err_fn = |e| eprintln!("[sonora:audio] stream error: {e}");
+    // cpal 0.18 takes the StreamConfig by value (it is Copy; was &StreamConfig
+    // in 0.17), so dereference our borrowed config to pass an owned copy.
     let res = match sample_format {
         SampleFormat::F32 => {
             let tx = tx.clone();
             device.build_input_stream(
-                config,
+                *config,
                 move |data: &[f32], _| send_mono(data, channels, &tx),
                 err_fn,
                 None,
@@ -267,7 +269,7 @@ fn build_stream(
         SampleFormat::I16 => {
             let tx = tx.clone();
             device.build_input_stream(
-                config,
+                *config,
                 move |data: &[i16], _| send_mono(data, channels, &tx),
                 err_fn,
                 None,
@@ -276,7 +278,7 @@ fn build_stream(
         SampleFormat::U16 => {
             let tx = tx.clone();
             device.build_input_stream(
-                config,
+                *config,
                 move |data: &[u16], _| send_mono(data, channels, &tx),
                 err_fn,
                 None,
