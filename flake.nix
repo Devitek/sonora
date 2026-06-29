@@ -186,13 +186,22 @@
           # native-tls / openssl-sys: link the system OpenSSL, don't vendor.
           env.OPENSSL_NO_VENDOR = "1";
 
-          # `tauri::generate_context!` embeds ../dist (relative to src-tauri);
-          # drop the pre-built frontend there before cargo runs.
+          # `tauri::generate_context!` embeds ../dist (relative to src-tauri).
           postPatch = ''
             rm -rf dist
             cp -r ${frontend} dist
             chmod -R u+w dist
           '';
+
+          # Tauri only embeds the frontend when the `custom-protocol` feature is
+          # enabled; otherwise `generate_context!` builds in dev mode (empty
+          # assets + dev URL) → blank window. The tauri CLI turns this on for
+          # `tauri build`; a plain cargo build (buildRustPackage) must opt in.
+          buildFeatures = [ "tauri/custom-protocol" ];
+
+          # Only the binary target is needed (the lib is also staticlib+cdylib
+          # for mobile, which we don't ship).
+          cargoBuildFlags = [ "--bin" "sonora" ];
 
           # Install hicolor icons (+ a scalable SVG) so the .desktop entry shows
           # an icon in app launchers / the GNOME-Shell app grid.
