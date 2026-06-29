@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Shown in the macOS microphone-permission prompt. Required for the TCC
+       request to appear at all when capturing audio (GitHub issue #2). -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Sonora needs microphone access to transcribe your speech to text.</string>
+</dict>
+</plist>
