@@ -203,6 +203,16 @@
             install -Dm644 "${./brand/logo.svg}"        "$out/share/icons/hicolor/scalable/apps/sonora.svg"
           '';
 
+          # The system-tray crate (libappindicator-sys) dlopen()s
+          # libayatana-appindicator3.so.1 at runtime, so it isn't in the binary's
+          # RPATH — expose it on LD_LIBRARY_PATH via the GApps wrapper, otherwise
+          # the app panics at launch ("Failed to load ayatana-appindicator3").
+          preFixup = ''
+            gappsWrapperArgs+=(
+              --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ pkgs.libayatana-appindicator ]}"
+            )
+          '';
+
           doCheck = false;
 
           meta = {
