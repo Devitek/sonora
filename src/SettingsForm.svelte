@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke, isTauri } from "./lib/tauri";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
   import Select from "./lib/Select.svelte";
   import {
     getAutoType,
@@ -19,6 +18,9 @@
   } from "./lib/providers";
   import type { Settings } from "./lib/types";
 
+  // The parent panel owns the window chrome; it passes a close callback.
+  let { onClose }: { onClose?: () => void } = $props();
+
   let settings = $state<Settings>({ provider: "gemini" });
   let apiKey = $state("");
   let hasKey = $state(false);
@@ -27,15 +29,9 @@
   let settingsMsg = $state("");
   let autoType = $state(false);
 
-  // Theme (each window applies its own data-theme attribute).
+  // Theme: only used here to highlight the active segment. The panel applies the
+  // actual data-theme attribute (and reloads it on the broadcast below).
   let theme = $state<ThemePref>("system");
-  let systemDark = $state(true);
-  const effectiveTheme = $derived(
-    theme === "system" ? (systemDark ? "dark" : "light") : theme,
-  );
-  $effect(() => {
-    document.documentElement.setAttribute("data-theme", effectiveTheme);
-  });
 
   const provider = $derived(settings.provider ?? "gemini");
   const needsKey = $derived(KEYED_PROVIDERS.includes(provider));
@@ -56,7 +52,7 @@
     hasCleanupKey = await invoke<boolean>("has_api_key", { provider: "cleanup" });
   }
 
-  /** Tell the bar (and any other window) to reload persisted settings. */
+  /** Tell the bar (and the panel) to reload persisted settings. */
   function broadcast() {
     void invoke("broadcast_settings_changed");
   }
@@ -111,11 +107,6 @@
     broadcast();
   }
 
-  function closeWindow() {
-    if (!isTauri) return;
-    void getCurrentWindow().close();
-  }
-
   onMount(() => {
     if (isTauri) {
       void loadSettings();
@@ -137,30 +128,10 @@
         ],
       };
     }
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    systemDark = mq.matches;
-    const onMq = (e: MediaQueryListEvent) => (systemDark = e.matches);
-    mq.addEventListener("change", onMq);
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeWindow();
-    };
-    window.addEventListener("keydown", onKey);
-
-    return () => {
-      mq.removeEventListener("change", onMq);
-      window.removeEventListener("keydown", onKey);
-    };
   });
 </script>
 
-<div class="settings-root">
-  <header class="s-header" data-tauri-drag-region>
-    <span class="s-title">Réglages</span>
-    <button class="s-close" onclick={closeWindow} title="Fermer" aria-label="Fermer">✕</button>
-  </header>
-
+<div class="form-root">
   <div class="s-body">
     <!-- quick toggles -->
     <div class="quick">
@@ -303,42 +274,17 @@
 
   <footer class="s-actions">
     {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
-    <button class="cancel-btn" onclick={closeWindow}>Fermer</button>
+    <button class="cancel-btn" onclick={() => onClose?.()}>Fermer</button>
     <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
   </footer>
 </div>
 
 <style>
-  .settings-root {
-    height: 100vh;
+  .form-root {
+    height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--bg-solid);
-    color: var(--fg);
-  }
-  .s-header {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--divider);
-    background: var(--surface);
-  }
-  .s-title {
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .s-close {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    color: var(--fg-dim);
-    background: var(--icon-bg);
-    font-size: 13px;
-  }
-  .s-close:hover {
-    color: var(--fg);
+    min-height: 0;
   }
   .s-body {
     flex: 1;

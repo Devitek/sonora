@@ -10,7 +10,6 @@
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
   import {
     getAutoType,
-    setAutoType,
     getTheme,
     getBarPosition,
     setBarPosition,
@@ -35,13 +34,12 @@
   let level = $state(0);
   let errorMsg = $state("");
 
+  // Kept in memory only to append a finished dictation; the list now lives in
+  // the dedicated panel window (Historique tab). Re-synced via the broadcast.
   let history = $state<HistoryEntry[]>([]);
   let copied = $state(false);
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
   let autoType = $state(false);
-
-  // Options dropdown (history + quick toggles; settings live in their own window)
-  let menuOpen = $state(false);
 
   let settings = $state<Settings>({ provider: "gemini" });
   /** true once a usable transcription config resolves (drives onboarding). */
@@ -73,7 +71,7 @@
   let lastBarHeight = 0;
   function measureAndResize() {
     let bottom = 0;
-    for (const sel of [".bar", ".capsule", ".panel", ".prompt-menu"]) {
+    for (const sel of [".bar", ".capsule", ".prompt-menu"]) {
       const el = document.querySelector(sel);
       if (!el) continue;
       const r = el.getBoundingClientRect();
@@ -92,7 +90,6 @@
   $effect(() => {
     // Track everything that can change the visible height, then re-measure.
     void [
-      menuOpen,
       promptMenuOpen,
       prompts.length,
       listening,
@@ -188,24 +185,8 @@
       partial = "";
       return;
     }
-    // history: open the bar dropdown with realistic data
-    autoType = true;
-    settings = {
-      provider: "gemini",
-      language: "fr",
-      cleanup_enabled: true,
-      cleanup_provider: "gemini",
-      prompts: [
-        { id: "p1", name: "Reformuler — pro", prompt: "Réécris ce texte dans un ton professionnel et concis." },
-        { id: "p2", name: "Commande terminal", prompt: "Convertis cette demande en une commande shell." },
-      ],
-    };
-    menuOpen = true;
-    history = [
-      { id: "h1", text: "Peux-tu préparer un résumé de la réunion de ce matin ?", createdAt: Date.now() - 1000 * 60 * 7 },
-      { id: "h2", text: "Ajouter une section FAQ à la documentation du projet.", createdAt: Date.now() - 1000 * 60 * 60 * 3 },
-      { id: "h3", text: "Réserve une salle pour la rétro de vendredi après-midi.", createdAt: Date.now() - 1000 * 60 * 60 * 27 },
-    ];
+    // The history view now lives in the panel window (see Panel/History.svelte,
+    // rendered via `?view=settings&tab=history` in the screenshot harness).
   }
 
   onMount(() => {
@@ -244,7 +225,6 @@
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (promptMenuOpen) promptMenuOpen = false;
-      else if (menuOpen) menuOpen = false;
       else if (!hasText && !listening && !cleaning && !errorMsg) void hideWindow();
     };
     window.addEventListener("keydown", onKey);
@@ -291,13 +271,19 @@
       handleControl(ev.action),
     );
 
-    // The dedicated Settings window broadcasts changes — reload what the bar
+    // The dedicated panel window broadcasts changes — reload what the bar
     // depends on (prompts, cleanup/auto-type toggles, theme, configured-state).
     const unlistenSettings = listen("sonora://settings-changed", () => {
       void loadSettings();
       void refreshConfigured();
       void getAutoType().then((v) => (autoType = v));
       void getTheme().then((v) => (theme = v));
+    });
+
+    // The panel's History tab (delete/clear) broadcasts too — keep the bar's
+    // in-memory copy fresh so a finished dictation doesn't resurrect old entries.
+    const unlistenHistory = listen("sonora://history-changed", () => {
+      void loadHistory().then((h) => (history = h));
     });
 
     // Replay a first-launch CLI action (e.g. `transcript toggle`).
@@ -311,6 +297,7 @@
       void unlistenEvents.then((fn) => fn());
       void unlistenControl.then((fn) => fn());
       void unlistenSettings.then((fn) => fn());
+      void unlistenHistory.then((fn) => fn());
       unlistenMoved?.();
       clearTimeout(savePosTimer);
     };
@@ -419,6 +406,7 @@
     }
     history = [newEntry(text), ...history];
     await saveHistory(history);
+    void invoke("broadcast_history_changed"); // refresh the panel's History tab
   }
 
   async function toggle() {
@@ -436,7 +424,6 @@
       errorMsg = "";
       finals = [];
       partial = "";
-      menuOpen = false;
       recState = "starting";
       try {
         await invoke("start_recording");
@@ -452,20 +439,6 @@
     partial = "";
   }
 
-  async function toggleAutoType() {
-    autoType = !autoType;
-    await setAutoType(autoType);
-    void invoke("broadcast_settings_changed");
-  }
-
-  async function toggleCleanup() {
-    settings.cleanup_enabled = !settings.cleanup_enabled;
-    await invoke("save_settings", { settings: $state.snapshot(settings) }).catch(
-      (e) => (errorMsg = String(e)),
-    );
-    void invoke("broadcast_settings_changed");
-  }
-
   async function loadSettings() {
     const s = await invoke<Settings>("get_settings");
     settings = s && Object.keys(s).length ? s : { provider: "gemini" };
@@ -477,40 +450,16 @@
     configured = await invoke<boolean>("is_configured");
   }
 
-  function toggleMenu() {
-    menuOpen = !menuOpen;
-    if (menuOpen) void loadSettings();
+  /** Open the dedicated panel window on the Historique tab. */
+  function openHistory() {
+    promptMenuOpen = false;
+    void invoke("open_settings", { tab: "history" });
   }
 
-  /** Open the dedicated Settings window (it broadcasts changes back to us). */
+  /** Open the dedicated panel window on the Réglages tab. */
   function openSettings() {
     promptMenuOpen = false;
-    menuOpen = false;
-    void invoke("open_settings");
-  }
-
-  async function copyEntry(entry: HistoryEntry) {
-    await copyText(entry.text);
-    flashCopied();
-  }
-
-  async function deleteEntry(id: string) {
-    history = history.filter((e) => e.id !== id);
-    await saveHistory(history);
-  }
-
-  async function clearHistory() {
-    history = [];
-    await saveHistory(history);
-  }
-
-  function fmtTime(ts: number): string {
-    return new Date(ts).toLocaleString(undefined, {
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    void invoke("open_settings", { tab: "settings" });
   }
 
   async function hideWindow() {
@@ -644,10 +593,7 @@
         <button
           class="icon-btn"
           class:active={promptMenuOpen}
-          onclick={() => {
-            menuOpen = false;
-            promptMenuOpen = !promptMenuOpen;
-          }}
+          onclick={() => (promptMenuOpen = !promptMenuOpen)}
           disabled={cleaning}
           title="Reformuler / nettoyer">✦</button
         >
@@ -657,11 +603,15 @@
         <button class="icon-btn" onclick={clearAll} title="Effacer">⌫</button>
       {/if}
 
-      <button class="icon-btn menu" class:active={menuOpen} onclick={toggleMenu} title="Options" aria-label="Options">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="4" y1="7" x2="20" y2="7" /><circle cx="15" cy="7" r="2.4" fill="currentColor" stroke="none" />
-          <line x1="4" y1="13" x2="20" y2="13" /><circle cx="9" cy="13" r="2.4" fill="currentColor" stroke="none" />
-          <line x1="4" y1="19" x2="20" y2="19" /><circle cx="16" cy="19" r="2.4" fill="currentColor" stroke="none" />
+      <button class="icon-btn" onclick={openHistory} title="Historique" aria-label="Historique">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 4v4h4" /><path d="M12 8v4l3 2" />
+        </svg>
+      </button>
+      <button class="icon-btn menu" onclick={openSettings} title="Réglages" aria-label="Réglages">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       </button>
     </div>
@@ -697,53 +647,6 @@
         >
       </div>
     {/if}
-
-    <!-- OPTIONS DROPDOWN -->
-    {#if menuOpen}
-      <div class="panel">
-        <!-- quick toggles -->
-        <div class="quick">
-          <button class="quick-card" class:on={autoType} onclick={toggleAutoType}>
-            <span class="q-ico">⌨</span>
-            <span class="q-name">Coller au curseur</span>
-            <span class="q-state">{autoType ? "activé" : "désactivé"}</span>
-          </button>
-          <button class="quick-card" class:on={cleanupEnabled} onclick={toggleCleanup}>
-            <span class="q-ico">✦</span>
-            <span class="q-name">Nettoyage auto</span>
-            <span class="q-state">{cleanupEnabled ? "activé" : "désactivé"}</span>
-          </button>
-        </div>
-
-        <!-- history (settings now live in their own window) -->
-        <div class="tab-body">
-          {#if history.length === 0}
-            <p class="placeholder">Aucune dictée enregistrée.</p>
-          {:else}
-            <div class="history-head">
-              <span>{history.length} entrée{history.length > 1 ? "s" : ""}</span>
-              <button class="link" onclick={clearHistory}>Tout effacer</button>
-            </div>
-            <ul class="history-list">
-              {#each history as entry (entry.id)}
-                <li class="history-item">
-                  <button class="entry-text" title="Copier" onclick={() => copyEntry(entry)}>
-                    <span class="entry-time">{fmtTime(entry.createdAt)}</span>
-                    <span class="entry-body">{entry.text}</span>
-                  </button>
-                  <button class="entry-del" title="Supprimer" onclick={() => deleteEntry(entry.id)}>✕</button>
-                </li>
-              {/each}
-            </ul>
-          {/if}
-        </div>
-
-        <div class="panel-foot">
-          <button class="foot-btn settings-btn" onclick={openSettings}>⚙ Réglages…</button>
-          <button class="foot-btn" onclick={hideWindow}>Masquer</button>
-        </div>
-      </div>
-    {/if}
   </div>
 </main>
 
@@ -769,7 +672,6 @@
   }
   .bar,
   .capsule,
-  .panel,
   .prompt-menu {
     pointer-events: auto;
   }
@@ -948,13 +850,9 @@
     color: var(--ok);
   }
   .icon-btn.menu {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 11px;
-  }
-  .icon-btn.menu.active {
-    color: var(--accent);
-    background: var(--accent-soft);
   }
 
   /* ---- capsule ---- */
@@ -976,168 +874,5 @@
     width: 100%;
     height: 100%;
     display: block;
-  }
-
-  /* ---- dropdown ---- */
-  .panel {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 12px);
-    z-index: 8;
-    width: 340px;
-    max-height: calc(100vh - 110px);
-    overflow-y: auto;
-    border-radius: 18px;
-    background: var(--dd-bg);
-    border: 1px solid var(--dd-border);
-    box-shadow: var(--dd-shadow);
-  }
-  .quick {
-    display: flex;
-    gap: 8px;
-    padding: 12px;
-  }
-  .quick-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    align-items: flex-start;
-    padding: 11px 12px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    text-align: left;
-  }
-  .quick-card.on {
-    background: var(--accent-soft);
-    border-color: var(--accent-soft-border);
-  }
-  .q-ico {
-    font-size: 16px;
-  }
-  .q-name {
-    font-size: 11.5px;
-    font-weight: 500;
-    line-height: 1.2;
-    color: var(--fg-mid);
-  }
-  .quick-card.on .q-name {
-    color: var(--on-accent-text);
-  }
-  .q-state {
-    font-family: ui-monospace, "JetBrains Mono", monospace;
-    font-size: 9.5px;
-    color: var(--fg-dim);
-  }
-  .quick-card.on .q-state {
-    color: var(--accent);
-  }
-  .tab-body {
-    padding: 12px;
-  }
-  .placeholder {
-    text-align: center;
-    color: var(--fg-dim);
-    font-size: 12.5px;
-    padding: 28px 0;
-  }
-
-  /* history */
-  .history-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    color: var(--fg-dim);
-    margin-bottom: 8px;
-  }
-  .link {
-    color: var(--fg-dim);
-    font-size: 12px;
-  }
-  .link:hover {
-    color: var(--danger);
-  }
-  .history-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .history-item {
-    display: flex;
-    align-items: stretch;
-    gap: 6px;
-  }
-  .entry-text {
-    flex: 1;
-    text-align: left;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 11px;
-    padding: 9px 11px;
-    display: block;
-    min-width: 0;
-  }
-  .entry-text:hover {
-    border-color: var(--accent-soft-border);
-  }
-  .entry-time {
-    display: block;
-    margin-bottom: 3px;
-    font-family: ui-monospace, "JetBrains Mono", monospace;
-    font-size: 9.5px;
-    color: var(--fg-dim);
-  }
-  .entry-body {
-    color: var(--fg-mid);
-    font-size: 12.5px;
-    line-height: 1.45;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-  .entry-del {
-    width: 28px;
-    flex: none;
-    border-radius: 11px;
-    color: var(--fg-dim);
-    background: var(--panel);
-    border: 1px solid var(--border);
-    font-size: 12px;
-  }
-  .entry-del:hover {
-    color: var(--danger);
-  }
-
-  /* panel footer: open settings window + hide bar */
-  .panel-foot {
-    display: flex;
-    gap: 8px;
-    padding: 10px 12px 12px;
-    border-top: 1px solid var(--divider);
-  }
-  .foot-btn {
-    flex: 1;
-    padding: 9px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    color: var(--fg-mid);
-    font-size: 12.5px;
-    font-weight: 500;
-  }
-  .foot-btn:hover {
-    color: var(--fg);
-    border-color: var(--accent-soft-border);
-  }
-  .foot-btn.settings-btn {
-    background: var(--accent-soft);
-    border-color: var(--accent-soft-border);
-    color: var(--on-accent-text);
   }
 </style>

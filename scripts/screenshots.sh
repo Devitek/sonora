@@ -33,11 +33,11 @@ shoot() { # <name> <url-query> <w> <h> <settleMs>
     gjs scripts/screenshot.js "http://localhost:$PORT/?$2" "$TMP/$1.png" "$3" "$4" "$5"
 }
 
-shoot bar       "shot=bar"               760 460  1100
-shoot result    "shot=result"            760 320  800
-shoot settings  "view=settings"          480 680  1100
-shoot history   "shot=history"           760 1180 900
-shoot bar-light "shot=bar&theme=light"   760 460  1100
+shoot bar       "shot=bar"                        760 460  1100
+shoot result    "shot=result"                     760 320  800
+shoot settings  "view=settings&tab=settings"      480 680  1100
+shoot history   "view=settings&tab=history"       480 560  1000
+shoot bar-light "shot=bar&theme=light"            760 460  1100
 
 # --- compose onto an on-brand backdrop --------------------------------------
 DARK="radial-gradient:#171231-#0A0B12"

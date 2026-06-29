@@ -2,13 +2,13 @@ import { mount } from "svelte";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./app.css";
 import App from "./App.svelte";
-import Settings from "./Settings.svelte";
+import Panel from "./Panel.svelte";
 import { isTauri } from "./lib/tauri";
 
-// The same bundle drives the floating bar and the dedicated Settings window.
-// Pick the component from the Tauri window label (or `?view=settings`, used by
-// the screenshot harness which runs outside Tauri).
-function isSettingsView(): boolean {
+// The same bundle drives the floating bar and the dedicated panel window
+// (Historique / Réglages tabs). Pick the component from the Tauri window label
+// (or `?view=settings`, used by the screenshot harness which runs outside Tauri).
+function isPanelView(): boolean {
   if (new URLSearchParams(location.search).get("view") === "settings") return true;
   if (!isTauri) return false;
   try {
@@ -18,7 +18,7 @@ function isSettingsView(): boolean {
   }
 }
 
-const app = mount(isSettingsView() ? Settings : App, {
+const app = mount(isPanelView() ? Panel : App, {
   target: document.getElementById("app")!,
 });
 

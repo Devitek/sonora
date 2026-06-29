@@ -165,20 +165,29 @@ fn resize_bar(app: AppHandle, height: u32) {
     }
 }
 
-/// Open (or focus) the dedicated Settings window. Keeping settings in their own
-/// normal, resizable window avoids resizing/flickering the floating bar.
+/// Open (or focus) the dedicated panel window (History + Settings tabs) on a
+/// given tab. Keeping history/settings in their own normal, resizable window
+/// avoids resizing/flickering the floating bar. `tab` is "history" | "settings".
 #[tauri::command]
-fn open_settings(app: AppHandle) -> Result<(), String> {
+fn open_settings(app: AppHandle, tab: Option<String>) -> Result<(), String> {
+    let tab = match tab.as_deref() {
+        Some("settings") => "settings",
+        _ => "history",
+    };
     if let Some(win) = app.get_webview_window("settings") {
         let _ = win.unminimize();
         let _ = win.show();
         let _ = win.set_focus();
+        // Window already up: ask it to switch to the requested tab.
+        let _ = win.emit("sonora://panel-tab", tab);
         return Ok(());
     }
-    WebviewWindowBuilder::new(&app, "settings", WebviewUrl::App("index.html".into()))
-        .title("Sonora — Réglages")
-        .inner_size(480.0, 660.0)
-        .min_inner_size(380.0, 420.0)
+    // First open: seed the active tab via the URL (the listener isn't ready yet).
+    let url = format!("index.html?tab={tab}");
+    WebviewWindowBuilder::new(&app, "settings", WebviewUrl::App(url.into()))
+        .title("Sonora — Panneau")
+        .inner_size(480.0, 680.0)
+        .min_inner_size(380.0, 460.0)
         .resizable(true)
         .focused(true)
         .build()
@@ -191,6 +200,13 @@ fn open_settings(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn broadcast_settings_changed(app: AppHandle) {
     let _ = app.emit("sonora://settings-changed", ());
+}
+
+/// Notify all windows that the transcript history changed, so the bar and the
+/// panel's History tab stay in sync (new dictation, delete, clear).
+#[tauri::command]
+fn broadcast_history_changed(app: AppHandle) {
+    let _ = app.emit("sonora://history-changed", ());
 }
 
 /// Show the floating bar WITHOUT stealing focus, so the app the user is in
@@ -270,6 +286,7 @@ pub fn run() {
             resize_bar,
             open_settings,
             broadcast_settings_changed,
+            broadcast_history_changed,
             take_pending_action,
             type_text,
             cleanup_text,
