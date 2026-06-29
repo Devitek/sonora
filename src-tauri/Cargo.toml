@@ -1,6 +1,6 @@
 [package]
 name = "sonora"
-version = "0.2.1"
+version = "0.2.2"
 description = "Sonora — real-time speech-to-text with pluggable models"
 authors = ["Thomas"]
 edition = "2021"
