@@ -67,8 +67,34 @@ prefer a clear onboarding / in-app hint when one is required.
 - Releases: bump with `node scripts/bump-version.mjs <patch|minor|major>`, then
   tag `vX.Y.Z` and push (tag-push builds & publishes all platforms).
 
+## Documentation & website — keep EN + FR in sync, only when needed
+
+User-facing documentation exists in **English (default) and French**, and the
+two must stay in sync. **Only touch docs when a change actually affects users** —
+a new or changed feature, flag, permission, install step, provider, or shortcut.
+**Skip doc updates for purely internal work** (refactors, CI, dependencies,
+packaging internals, tests) — don't churn the docs needlessly.
+
+When an update IS warranted, update **all** the relevant surfaces, in **both
+languages**:
+
+- `README.md` (EN) **and** `README.fr.md` (FR).
+- `CONTRIBUTING.md` (EN) when the contributor workflow/commands change.
+- The site under `docs/`: English at the root (`docs/index.html`,
+  `docs/docs.html`) **and** French under `docs/fr/`. Keep anchors, the language
+  switcher, `hreflang` tags and asset paths consistent (`fr/` pages reference
+  `../assets/...`). Regenerate screenshots via `scripts/screenshots.sh` if the UI
+  changed.
+- **Release notes are written in English.**
+
+The golden rule still applies on top of this: any user-granted permission must be
+documented in the README(s) **and** the site, in both languages.
+
 ## Conventions
 
-- Replies and UI strings: **French**. Commit messages: conventional, concise.
+- **Languages:** agent replies follow the user; the app's **UI strings stay
+  French**; user-facing **docs, website and release notes are English-default +
+  French**, kept in sync (see the section above).
+- Commit messages: conventional, concise.
 - Don't auto-close issues from commit messages until the reporter confirms — use
   `Refs #N`, not `Fixes #N`, while a fix is pending verification.
