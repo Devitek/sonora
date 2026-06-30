@@ -20,6 +20,11 @@ updates:
     labels: ["dependencies", "rust"]
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # cpal 0.18.x's WASAPI backend doesn't compile on Windows (windows-core
+      # trait bounds). Stay on 0.17 until upstream fixes it; remove this then.
+      - dependency-name: "cpal"
+        versions: ["0.18.x"]
     groups:
       cargo:
         update-types: ["minor", "patch"]
