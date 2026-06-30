@@ -8,6 +8,9 @@ suggestions, docs, or code.
 > user-facing strings in French). You may open issues and PRs in **English or
 > French** — whatever is easier for you.
 
+By participating, you agree to abide by our
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Table of contents
 
 - [Before you start](#before-you-start)
