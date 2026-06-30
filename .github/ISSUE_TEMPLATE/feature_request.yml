@@ -1,53 +1,53 @@
-name: 💡 Demande de fonctionnalité
-description: Proposer une amélioration ou une nouvelle fonctionnalité
+name: 💡 Feature request
+description: Suggest an improvement or a new feature
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Merci pour la suggestion ! Décrivez d'abord le **besoin** (le problème à
-        résoudre) avant la solution — ça aide à trouver la meilleure approche.
+        Thanks for the suggestion! Describe the **need** (the problem to solve)
+        before the solution — it helps find the best approach.
 
   - type: checkboxes
     id: preflight
     attributes:
-      label: Pré-vérifications
+      label: Pre-flight checks
       options:
-        - label: J'ai cherché dans les issues existantes (ouvertes et fermées).
+        - label: I searched the existing issues (open and closed).
           required: true
 
   - type: textarea
     id: problem
     attributes:
-      label: Quel problème cela résout-il ?
-      description: Le besoin ou la frustration à l'origine de la demande.
-      placeholder: "En tant qu'utilisateur, je veux… afin de…"
+      label: What problem does this solve?
+      description: The need or frustration behind the request.
+      placeholder: "As a user, I want… so that…"
     validations:
       required: true
 
   - type: textarea
     id: solution
     attributes:
-      label: Solution proposée
-      description: Comment imaginez-vous la fonctionnalité ?
+      label: Proposed solution
+      description: How do you imagine the feature working?
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives envisagées
-      description: Autres approches ou contournements que vous avez considérés.
+      label: Alternatives considered
+      description: Other approaches or workarounds you thought about.
     validations:
       required: false
 
   - type: dropdown
     id: scope
     attributes:
-      label: Plateformes concernées
+      label: Platforms affected
       options:
-        - Toutes
+        - All
         - Linux
         - macOS
         - Windows
@@ -57,7 +57,7 @@ body:
   - type: textarea
     id: context
     attributes:
-      label: Contexte additionnel
-      description: Maquettes, exemples d'autres apps, liens utiles…
+      label: Additional context
+      description: Mockups, examples from other apps, useful links…
     validations:
       required: false

@@ -1,40 +1,40 @@
 <!--
-Merci pour votre contribution ! Décrivez le QUOI et le POURQUOI.
-Voir CONTRIBUTING.md pour les détails.
+Thanks for your contribution! Describe the WHAT and the WHY.
+See CONTRIBUTING.md for details.
 -->
 
 ## Description
 
-<!-- Que fait cette PR, et pourquoi ? -->
+<!-- What does this PR do, and why? -->
 
-## Issue liée
+## Related issue
 
-<!-- ex. Refs #123  (ou Closes #123 si la PR clôt définitivement l'issue) -->
+<!-- e.g. Refs #123  (or Closes #123 if the PR fully resolves the issue) -->
 Refs #
 
-## Type de changement
+## Type of change
 
-- [ ] 🐞 Correction de bug
-- [ ] ✨ Nouvelle fonctionnalité
-- [ ] 🧹 Refactor / interne
+- [ ] 🐞 Bug fix
+- [ ] ✨ New feature
+- [ ] 🧹 Refactor / internal
 - [ ] 📖 Documentation
-- [ ] 🔧 CI / outillage
+- [ ] 🔧 CI / tooling
 
-## Vérifications
+## Checks
 
-- [ ] `bun run check` passe (0 erreur)
-- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --check` passe
-- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` passe
-- [ ] `nix build .#default` passe (si packaging / frontend / deps modifiés)
-- [ ] Dépendances frontend modifiées → `bash scripts/sync-bun-deps-hash.sh` lancé
-- [ ] J'ai vérifié les **permissions / ACL** impactées (cf. `AGENTS.md`)
+- [ ] `bun run check` passes (0 errors)
+- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --check` passes
+- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings` passes
+- [ ] `nix build .#default` passes (if packaging / frontend / deps changed)
+- [ ] Frontend deps changed → ran `bash scripts/sync-bun-deps-hash.sh`
+- [ ] I checked the impacted **permissions / ACL** (see `AGENTS.md`)
 
-## Plateformes testées
+## Platforms tested
 
 - [ ] Linux
 - [ ] macOS
 - [ ] Windows
 
-## Notes pour la revue
+## Notes for reviewers
 
-<!-- Captures d'écran, points d'attention, choix de conception… -->
+<!-- Screenshots, points of attention, design decisions… -->

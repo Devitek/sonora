@@ -1,59 +1,59 @@
-name: 🐞 Rapport de bug
-description: Signaler un dysfonctionnement de Sonora
+name: 🐞 Bug report
+description: Report something not working in Sonora
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Merci de prendre le temps de signaler un bug ! Plus le contexte est précis
-        (OS, mode d'installation, version, fournisseur, logs), plus c'est rapide à corriger.
+        Thanks for taking the time to report a bug! The more context (OS, install
+        method, version, provider, logs), the faster it can be fixed.
 
   - type: checkboxes
     id: preflight
     attributes:
-      label: Pré-vérifications
+      label: Pre-flight checks
       options:
-        - label: J'ai cherché dans les issues existantes (ouvertes et fermées).
+        - label: I searched the existing issues (open and closed).
           required: true
-        - label: J'utilise la dernière version disponible (ou je précise laquelle ci-dessous).
+        - label: I'm on the latest available version (or I state which one below).
           required: true
 
   - type: textarea
     id: description
     attributes:
-      label: Description du problème
-      description: Que se passe-t-il ? Qu'attendiez-vous à la place ?
-      placeholder: Décrivez le comportement observé et le comportement attendu.
+      label: Describe the bug
+      description: What happens? What did you expect instead?
+      placeholder: Describe the observed behavior and the expected behavior.
     validations:
       required: true
 
   - type: textarea
     id: steps
     attributes:
-      label: Étapes pour reproduire
-      description: La liste la plus précise possible pour reproduire le bug.
+      label: Steps to reproduce
+      description: The most precise list to reproduce the bug.
       placeholder: |
-        1. Ouvrir les Réglages…
-        2. Sélectionner le fournisseur…
-        3. Cliquer sur le micro…
-        4. Voir l'erreur…
+        1. Open Settings…
+        2. Select the provider…
+        3. Click the mic…
+        4. See the error…
     validations:
       required: true
 
   - type: input
     id: version
     attributes:
-      label: Version de Sonora
-      description: Visible dans l'app, ou le tag du build téléchargé.
-      placeholder: "ex. v0.2.11"
+      label: Sonora version
+      description: Shown in the app, or the tag of the build you downloaded.
+      placeholder: "e.g. v0.2.11"
     validations:
       required: true
 
   - type: dropdown
     id: os
     attributes:
-      label: Système d'exploitation
+      label: Operating system
       options:
         - Linux — Wayland (Hyprland, GNOME, KDE…)
         - Linux — X11
@@ -66,40 +66,40 @@ body:
   - type: dropdown
     id: install
     attributes:
-      label: Mode d'installation
+      label: Install method
       options:
         - AppImage (Linux)
-        - Paquet .deb (Linux)
+        - .deb package (Linux)
         - "nix run / nix build (NixOS)"
         - .dmg (macOS)
-        - .msi ou setup .exe (Windows)
-        - Compilé depuis les sources
+        - .msi or .exe setup (Windows)
+        - Built from source
     validations:
       required: true
 
   - type: dropdown
     id: provider
     attributes:
-      label: Fournisseur de transcription
-      description: Le moteur configuré au moment du bug (si pertinent).
+      label: Transcription provider
+      description: The engine configured when the bug happened (if relevant).
       options:
-        - Non concerné / je ne sais pas
+        - Not relevant / not sure
         - Gemini Live (streaming)
         - OpenAI
         - Groq
         - Mistral / Voxtral
-        - OpenAI-compatible (endpoint perso)
-        - Whisper local
+        - OpenAI-compatible (custom endpoint)
+        - Local Whisper
     validations:
       required: false
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs / messages d'erreur
+      label: Logs / error messages
       description: |
-        Lancé depuis un terminal, Sonora écrit des logs (ex. `[sonora:audio] …`).
-        Collez ici tout message pertinent. **Ne collez jamais de clé API.**
+        Run from a terminal, Sonora prints logs (e.g. `[sonora:audio] …`).
+        Paste any relevant message here. **Never paste an API key.**
       render: shell
     validations:
       required: false
@@ -107,7 +107,7 @@ body:
   - type: textarea
     id: context
     attributes:
-      label: Contexte additionnel
-      description: Captures d'écran, configuration Hyprland, particularités matérielles (micro USB…), etc.
+      label: Additional context
+      description: Screenshots, Hyprland config, hardware specifics (USB mic…), etc.
     validations:
       required: false

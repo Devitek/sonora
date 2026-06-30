@@ -5,7 +5,7 @@
 <h1 align="center">Sonora</h1>
 
 <p align="center">
-  <em>Transcription vocale en temps réel, sur votre bureau — modèles cloud ou 100 % locaux.</em>
+  <em>Real-time speech-to-text on your desktop — cloud or 100% local models.</em>
 </p>
 
 <p align="center">
@@ -17,105 +17,105 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://devitek.github.io/sonora/">🌐 Site &amp; documentation</a></strong>
+  <strong>English</strong> · <a href="README.fr.md">Français</a>
+  &nbsp;·&nbsp;
+  <strong><a href="https://devitek.github.io/sonora/">🌐 Website &amp; documentation</a></strong>
 </p>
 
-> 🤖 **Projet open source, intégralement construit avec une IA — et c'est assumé.**
-> Sonora a été conçu et codé de bout en bout par un agent IA (architecture, backend
-> Rust/Tauri, frontend Svelte 5, CI/CD, design de marque), en binôme avec un humain qui
-> orientait et testait sur sa machine. Le code, les commits et ce README sont le résultat
-> de cette collaboration. À prendre comme une démonstration de ce qu'on peut bâtir ainsi —
-> avec ses qualités… et la nécessité de relire ce qui touche à la sécurité.
+> 🤖 **Open source, fully built with AI — and we own it.**
+> Sonora was designed and coded end to end by an AI agent (architecture, Rust/Tauri
+> backend, Svelte 5 frontend, CI/CD, brand design), paired with a human who steered
+> and tested on their machine. The code, the commits and this README are the result
+> of that collaboration. Take it as a demonstration of what can be built this way —
+> with its strengths… and the need to review anything security-related.
 
 ---
 
-## ✦ C'est quoi
+## ✦ What is it
 
-Une **barre flottante façon Spotlight**, toujours à portée de raccourci. Vous appuyez, vous
-parlez, le texte s'écrit **en direct** — puis il est copié dans le presse-papier ou **tapé
-directement à l'endroit de votre curseur**. Branchez le moteur de votre choix : **Gemini**,
-**Mistral**, **OpenAI**, **Groq**, n'importe quel endpoint **compatible OpenAI**, ou
-**Whisper 100 % local et hors-ligne**.
+A **Spotlight-style floating bar**, always a shortcut away. You press, you speak, the
+text appears **live** — then it's copied to the clipboard or **typed straight at your
+cursor**. Plug in the engine of your choice: **Gemini**, **Mistral**, **OpenAI**,
+**Groq**, any **OpenAI-compatible** endpoint, or **fully local, offline Whisper**.
 
-## Fonctionnalités
+## Features
 
-- 🎙️ **Dictée en streaming** — le texte apparaît au fur et à mesure (avec Gemini Live).
-- ⌨️ **Collage au curseur** — le résultat est tapé là où vous êtes (ou copié au presse-papier).
-- ⌘ **Raccourci global** — démarrez/arrêtez sans quitter votre application en cours.
-- 🔌 **Modèles enfichables** — Gemini Live, Mistral (Voxtral), OpenAI Whisper, Groq,
-  OpenAI-compatible, Whisper local.
-- ✦ **Nettoyage des hésitations** — passe optionnelle qui retire les « euh », faux départs,
-  répétitions.
-- ✍️ **Prompts de reformulation** — transformez une dictée via un LLM avec vos propres prompts
-  (« reformuler de manière formelle », « convertir en commande terminal », « réécrire pro »…).
-- 🕘 **Historique** — retrouvez et recopiez vos dictées précédentes.
-- 🌗 **Thème** clair / sombre / système.
-- 〰️ **Waveform en direct** pilotée par le vrai niveau audio.
-- 🔐 **Clés API au trousseau** — stockées dans le keyring de l'OS (repli fichier `0600`),
-  jamais en clair côté front.
-- 🖥️ **Multiplateforme** — un binaire léger (Tauri) sur macOS, Windows et Linux.
+- 🎙️ **Streaming dictation** — text appears as you speak (with Gemini Live).
+- ⌨️ **Type at cursor** — the result is typed where you are (or copied to the clipboard).
+- ⌘ **Global shortcut** — start/stop without leaving your current app.
+- 🔌 **Pluggable models** — Gemini Live, Mistral (Voxtral), OpenAI Whisper, Groq,
+  OpenAI-compatible, local Whisper.
+- ✦ **Hesitation cleanup** — optional pass that strips "uh", false starts, repetitions.
+- ✍️ **Reformulation prompts** — transform a dictation through an LLM with your own
+  prompts ("rewrite formally", "convert to a terminal command", "make it professional"…).
+- 🕘 **History** — find and re-copy your previous dictations.
+- 🌗 **Theme** — light / dark / system.
+- 〰️ **Live waveform** driven by the real audio level.
+- 🔐 **API keys in the keychain** — stored in the OS keyring (`0600` file fallback),
+  never in plaintext on the frontend.
+- 🖥️ **Cross-platform** — a lightweight binary (Tauri) on macOS, Windows and Linux.
 
 ## Providers
 
-| Fournisseur          | Transcription      | Reformulation | Clé requise | Hors-ligne |
-| -------------------- | ------------------ | :-----------: | :---------: | :--------: |
-| **Gemini Live**      | streaming, mot-à-mot | ✓           |     oui     |     —      |
-| **Mistral (Voxtral)**| par segment        | ✓             |     oui     |     —      |
-| **OpenAI Whisper**   | par segment        | ✓             |     oui     |     —      |
-| **Groq Whisper**     | par segment        | ✓             |     oui     |     —      |
-| **OpenAI-compatible**| par segment        | ✓             | selon hôte  |  possible  |
-| **Whisper local** (ggml) | par segment    |       —       |     non     |     ✓      |
+| Provider             | Transcription        | Reformulation | Key required | Offline |
+| -------------------- | -------------------- | :-----------: | :----------: | :-----: |
+| **Gemini Live**      | streaming, word-by-word | ✓          |     yes      |    —    |
+| **Mistral (Voxtral)**| per segment          | ✓             |     yes      |    —    |
+| **OpenAI Whisper**   | per segment          | ✓             |     yes      |    —    |
+| **Groq Whisper**     | per segment          | ✓             |     yes      |    —    |
+| **OpenAI-compatible**| per segment          | ✓             | host-dependent | possible |
+| **Local Whisper** (ggml) | per segment      |       —       |      no      |    ✓    |
 
-> La transcription « par segment » découpe la parole via une détection d'activité vocale (VAD)
-> et transcrit chaque segment ; Gemini Live, lui, renvoie le texte en continu.
+> "Per segment" transcription splits speech with voice-activity detection (VAD) and
+> transcribes each segment; Gemini Live instead streams the text continuously.
 
-## Installation / développement
+## Install / development
 
-Prérequis : **Rust** (stable), **Bun**, et les [dépendances système Tauri](https://tauri.app/start/prerequisites/)
-(WebKitGTK, etc.).
+Prerequisites: **Rust** (stable), **Bun**, and the
+[Tauri system dependencies](https://tauri.app/start/prerequisites/) (WebKitGTK, etc.).
 
 ```bash
 bun install
-bun run tauri dev      # développement
-bun run tauri build    # build de production (binaire dans src-tauri/target/release/sonora)
+bun run tauri dev      # development
+bun run tauri build    # production build (binary in src-tauri/target/release/sonora)
 ```
 
-**NixOS / Nix** — le flake expose un package natif (recommandé sur NixOS plutôt que
-l'AppImage, qui se heurte aux pilotes EGL/bubblewrap) :
+**NixOS / Nix** — the flake exposes a native package (recommended on NixOS over the
+AppImage, which trips on EGL/bubblewrap drivers):
 
 ```bash
-nix run github:Devitek/sonora      # lance directement
+nix run github:Devitek/sonora      # run directly
 nix build github:Devitek/sonora    # -> ./result/bin/sonora
 ```
 
-…et un devshell complet (WebKitGTK, ALSA, cmake, wtype…) pour le développement :
+…and a complete devshell (WebKitGTK, ALSA, cmake, wtype…) for development:
 
 ```bash
 nix develop
-bash scripts/dev.sh    # libère le port Vite résiduel puis lance `tauri dev`
+bash scripts/dev.sh    # frees a stale Vite port, then runs `tauri dev`
 ```
 
 ## Configuration (⚙)
 
-Ouvrez les **Réglages** (icône ⚙ de la barre) :
+Open the **Settings** (⚙ icon on the bar):
 
-1. Choisissez un **fournisseur** de transcription.
-2. Collez la **clé API** correspondante (stockée dans le trousseau de l'OS).
-3. Optionnel : choisissez le **microphone** (source de capture ; « Système » suit le micro par
-   défaut de l'OS, ↻ rafraîchit la liste).
-4. Optionnel : modèle, langue, URL de base (endpoints compatibles), chemin du modèle `ggml`
-   (Whisper local).
-5. Optionnel : activez le **nettoyage automatique**, choisissez son **moteur de reformulation**,
-   et définissez vos **prompts** personnalisés.
+1. Choose a transcription **provider**.
+2. Paste the matching **API key** (stored in the OS keychain).
+3. Optional: pick the **microphone** (capture source; "System" follows the OS default
+   mic, ↻ refreshes the list).
+4. Optional: model, language, base URL (compatible endpoints), `ggml` model path
+   (local Whisper).
+5. Optional: enable **automatic cleanup**, choose its **reformulation engine**, and
+   define your custom **prompts**.
 
-> Pour le développement, ces réglages peuvent aussi venir d'un fichier `.env` (voir
+> For development, these settings can also come from a `.env` file (see
 > [`.env.example`](.env.example)).
 
-## Barre flottante sous Linux (Hyprland)
+## Floating bar on Linux (Hyprland)
 
-Sonora est une fenêtre **transparente, sans décorations, sans focus**. Sous un compositeur
-tuilant comme Hyprland, faites-la flotter et bindez le raccourci global. Syntaxe pour les
-versions récentes de Hyprland (sélecteur `match:`) :
+Sonora is a **transparent, decoration-less, focus-less** window. Under a tiling
+compositor like Hyprland, float it and bind the global shortcut. Syntax for recent
+Hyprland versions (`match:` selector):
 
 ```ini
 windowrule = float on,            match:title ^(Sonora)$
@@ -127,36 +127,38 @@ windowrule = no_blur on,          match:title ^(Sonora)$
 windowrule = pin on,              match:title ^(Sonora)$
 windowrule = no_initial_focus on, match:title ^(Sonora)$
 
-# Push-to-talk : lance une 2ᵉ instance qui transmet l'action à celle en cours (single-instance)
+# Push-to-talk: launch a 2nd instance that forwards the action to the running one (single-instance)
 bind = SUPER, V, exec, sonora toggle
 ```
 
 ## Releases & CI
 
-- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) : sur chaque push/PR,
-  type-check Svelte + `cargo fmt` + `clippy -D warnings` + `cargo check` sur **Windows
-  et macOS**. S'ajoutent le build **Nix**, l'analyse **CodeQL** et les audits de
-  dépendances (`cargo audit` / `bun audit`).
-- **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) : *Actions →
-  Release → Run workflow* avec un bump **semver** (patch/minor/major) → versionne, tague
-  `vX.Y.Z`, et publie les binaires **Linux** (`.AppImage`, `.deb`), **macOS** (`.dmg`,
-  Apple Silicon + Intel) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
+- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): on every push/PR,
+  Svelte type-check + `cargo fmt` + `clippy -D warnings` + `cargo check` on **Windows
+  and macOS**. Plus the **Nix** build, **CodeQL** analysis and dependency audits
+  (`cargo audit` / `bun audit`).
+- **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)):
+  *Actions → Release → Run workflow* with a **semver** bump (patch/minor/major) →
+  versions, tags `vX.Y.Z`, and publishes **Linux** (`.AppImage`, `.deb`), **macOS**
+  (`.dmg`, Apple Silicon + Intel) and **Windows** (`.msi`, NSIS) binaries on the
+  GitHub Release.
 
-## Contribuer
+## Contributing
 
-Les contributions sont les bienvenues ! Consultez le **[guide de contribution](CONTRIBUTING.md)**
-(mise en place, commandes de vérification, conventions, règle d'or permissions/plateformes).
-Pour signaler un bug ou proposer une fonctionnalité, ouvrez une
-[issue](https://github.com/Devitek/sonora/issues/new/choose) avec le gabarit adapté.
+Contributions are welcome! See the **[contributing guide](CONTRIBUTING.md)** (setup,
+verification commands, conventions, the permissions/platforms golden rule). To report a
+bug or request a feature, open an
+[issue](https://github.com/Devitek/sonora/issues/new/choose) with the right template.
 
-## Marque
+## Brand
 
-Ressources visuelles dans [`brand/`](brand/) :
+Visual assets in [`brand/`](brand/):
 
-- `logo.svg` — icône (dégradé, fond arrondi) · `logo-mark.svg` / `logo-mark-white.svg` — symbole seul
-- Couleurs : violet `#7C5CFF` → cyan `#22D3EE` · fond sombre `#0A0B12`
-- Typographie : Space Grotesk (titres) · Inter (UI) · JetBrains Mono (détails)
+- `logo.svg` — icon (gradient, rounded background) · `logo-mark.svg` /
+  `logo-mark-white.svg` — symbol only
+- Colors: purple `#7C5CFF` → cyan `#22D3EE` · dark background `#0A0B12`
+- Typography: Space Grotesk (titles) · Inter (UI) · JetBrains Mono (details)
 
-## Licence
+## License
 
 [MIT](LICENSE) © 2026

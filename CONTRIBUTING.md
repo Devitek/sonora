@@ -1,178 +1,178 @@
-# Contribuer à Sonora
+# Contributing to Sonora
 
-Merci de l'intérêt que vous portez à **Sonora** — une barre de dictation flottante
-multiplateforme (Tauri 2 + Svelte 5 + Rust). Toute contribution est la bienvenue :
-rapport de bug, suggestion, doc, ou code.
+Thanks for your interest in **Sonora** — a cross-platform floating dictation bar
+(Tauri 2 + Svelte 5 + Rust). All contributions are welcome: bug reports,
+suggestions, docs, or code.
 
-> **Langue.** L'interface et les chaînes du produit sont en **français**. Vous
-> pouvez ouvrir une issue ou une PR en **français ou en anglais** — on s'adaptera.
+> **Language.** The app's UI strings and product copy are in **French** (keep new
+> user-facing strings in French). You may open issues and PRs in **English or
+> French** — whatever is easier for you.
 
-## Sommaire
+## Table of contents
 
-- [Avant de commencer](#avant-de-commencer)
-- [Mettre en place l'environnement](#mettre-en-place-lenvironnement)
-- [Structure du projet](#structure-du-projet)
-- [Lancer en développement](#lancer-en-développement)
-- [Vérifications avant de proposer une PR](#vérifications-avant-de-proposer-une-pr)
-- [La règle d'or : permissions & plateformes](#la-règle-dor--permissions--plateformes)
+- [Before you start](#before-you-start)
+- [Setting up the environment](#setting-up-the-environment)
+- [Project layout](#project-layout)
+- [Running in development](#running-in-development)
+- [Checks before opening a PR](#checks-before-opening-a-pr)
+- [The golden rule: permissions & platforms](#the-golden-rule-permissions--platforms)
 - [Conventions](#conventions)
-- [Dépendances & sécurité](#dépendances--sécurité)
-- [Processus de Pull Request](#processus-de-pull-request)
-- [Releases (mainteneurs)](#releases-mainteneurs)
-- [Signaler un bug / proposer une fonctionnalité](#signaler-un-bug--proposer-une-fonctionnalité)
-- [Licence](#licence)
+- [Dependencies & security](#dependencies--security)
+- [Pull request process](#pull-request-process)
+- [Releases (maintainers)](#releases-maintainers)
+- [Reporting a bug / requesting a feature](#reporting-a-bug--requesting-a-feature)
+- [License](#license)
 
-## Avant de commencer
+## Before you start
 
-- Pour un **changement non trivial**, ouvrez d'abord une **issue** pour en discuter
-  (évite de coder dans une direction qui ne sera pas retenue).
-- Cherchez dans les [issues existantes](https://github.com/Devitek/sonora/issues)
-  avant d'en créer une nouvelle.
-- Les petites corrections (typo, doc, lint) peuvent aller directement en PR.
+- For a **non-trivial change**, open an **issue** first to discuss it (avoids
+  building in a direction that won't be accepted).
+- Search [existing issues](https://github.com/Devitek/sonora/issues) before
+  opening a new one.
+- Small fixes (typo, docs, lint) can go straight to a PR.
 
-## Mettre en place l'environnement
+## Setting up the environment
 
-**Prérequis** : [Rust](https://rustup.rs/) stable, [Bun](https://bun.sh/), et les
-[dépendances système Tauri](https://tauri.app/start/prerequisites/) (WebKitGTK,
-ALSA, etc. sous Linux).
+**Prerequisites:** [Rust](https://rustup.rs/) stable, [Bun](https://bun.sh/), and
+the [Tauri system dependencies](https://tauri.app/start/prerequisites/)
+(WebKitGTK, ALSA, etc. on Linux).
 
 ```bash
 bun install
 ```
 
-**Sous Nix / NixOS** (recommandé — fournit WebKitGTK, ALSA, cmake, wtype… dans un
-devshell reproductible) :
+**On Nix / NixOS** (recommended — provides WebKitGTK, ALSA, cmake, wtype… in a
+reproducible devshell):
 
 ```bash
-nix develop            # entre dans le devshell
+nix develop            # enter the devshell
 bun install
 ```
 
-## Structure du projet
+## Project layout
 
-| Chemin | Rôle |
+| Path | Purpose |
 | --- | --- |
-| `src/` | Frontend Svelte 5 (barre flottante + fenêtre Historique/Réglages) |
-| `src/lib/` | Utilitaires partagés (providers, settings, clipboard, types…) |
-| `src-tauri/src/` | Backend Rust (audio, providers de transcription, secrets, sortie clavier…) |
-| `src-tauri/capabilities/` | Permissions ACL Tauri |
-| `flake.nix` | Paquet Nix natif + devshell |
-| `scripts/` | Outils (dev, screenshots, bump de version, hash des deps…) |
-| `docs/` | Mini-site GitHub Pages |
-| `.github/workflows/` | CI, release, sécurité, bots de mise à jour |
+| `src/` | Svelte 5 frontend (floating bar + History/Settings window) |
+| `src/lib/` | Shared utilities (providers, settings, clipboard, types…) |
+| `src-tauri/src/` | Rust backend (audio, transcription providers, secrets, keystroke output…) |
+| `src-tauri/capabilities/` | Tauri ACL permissions |
+| `flake.nix` | Native Nix package + devshell |
+| `scripts/` | Tooling (dev, screenshots, version bump, deps hash…) |
+| `docs/` | GitHub Pages mini-site |
+| `.github/workflows/` | CI, release, security, update bots |
 
-## Lancer en développement
+## Running in development
 
 ```bash
-bun run tauri dev          # ou: bash scripts/dev.sh  (libère le port Vite résiduel)
+bun run tauri dev          # or: bash scripts/dev.sh  (frees a stale Vite port first)
 ```
 
-Build de production local :
+Local production build:
 
 ```bash
-bun run tauri build        # binaire dans src-tauri/target/release/sonora
+bun run tauri build        # binary in src-tauri/target/release/sonora
 ```
 
-## Vérifications avant de proposer une PR
+## Checks before opening a PR
 
-Ces commandes correspondent **exactement** à ce que la CI exécute — faites-les
-passer en local pour un aller-retour rapide :
+These commands match **exactly** what CI runs — run them locally for a fast
+feedback loop:
 
 ```bash
-# Frontend : 0 erreur attendue
+# Frontend: expect 0 errors
 bun run check
 
-# Rust : format + lints (warnings = erreurs)
-cargo fmt   --manifest-path src-tauri/Cargo.toml --check
+# Rust: format + lints (warnings are errors)
+cargo fmt    --manifest-path src-tauri/Cargo.toml --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
-# Paquet Nix (si vous touchez au packaging, au frontend ou aux deps)
+# Nix package (if you touch packaging, the frontend, or dependencies)
 nix build .#default
 ```
 
-La CI ajoute en plus un **`cargo check` sur Windows et macOS** : une dépendance
-qui ne compile que sur Linux ne suffit pas. Si votre changement touche au backend
-audio/natif, gardez en tête les trois OS.
+CI additionally runs a **`cargo check` on Windows and macOS**: a dependency that
+only builds on Linux isn't enough. If your change touches the audio/native
+backend, keep all three OSes in mind.
 
-## La règle d'or : permissions & plateformes
+## The golden rule: permissions & platforms
 
-Avant de considérer une fonctionnalité « terminée », vérifiez ce qui pourrait
-**l'empêcher de tourner** sur chaque plateforme — **permissions OS** et
-**capacités ACL Tauri**. Une feature qui marche en `tauri dev` échoue souvent
-ailleurs (prompt micro, tray, EGL, position de fenêtre…).
+Before considering a feature "done", check what could **prevent it from running**
+on each platform — both **OS permissions** and **Tauri ACL capabilities**. A
+feature that works in `tauri dev` often fails elsewhere (mic prompt, tray, EGL,
+window position…).
 
-En résumé, demandez-vous :
+In short, ask yourself:
 
-1. **ACL Tauri** (`src-tauri/capabilities/default.json`) — tout nouvel appel
-   `core:*` ou plugin (`window.setPosition`, `clipboard`, `global-shortcut`,
-   `store`…) doit avoir une règle `allow-*`, sinon il est **silencieusement
-   refusé**. (Les commandes `#[tauri::command]` maison n'en ont pas besoin.)
-2. **macOS** — ressource TCC (micro → `NS*UsageDescription` dans `Info.plist`),
-   Accessibilité pour la frappe au curseur, Gatekeeper pour les builds non signés.
-3. **Windows** — réglage de confidentialité micro, SmartScreen pour les installeurs.
-4. **Linux** — outils/libs `dlopen`és : `wtype`/`xdotool` (frappe au curseur),
-   `libayatana-appindicator` (tray), quirks EGL/DMABUF de WebKitGTK.
+1. **Tauri ACL** (`src-tauri/capabilities/default.json`) — any new `core:*` or
+   plugin call (`window.setPosition`, `clipboard`, `global-shortcut`, `store`…)
+   needs an `allow-*` rule, or it is **silently denied** at runtime. (App-defined
+   `#[tauri::command]`s don't need one.)
+2. **macOS** — TCC-gated resource (microphone → `NS*UsageDescription` in
+   `Info.plist`), Accessibility for type-at-cursor, Gatekeeper for unsigned builds.
+3. **Windows** — microphone privacy setting, SmartScreen for unsigned installers.
+4. **Linux** — `dlopen`'d tools/libs: `wtype`/`xdotool` (type-at-cursor),
+   `libayatana-appindicator` (tray), WebKitGTK EGL/DMABUF quirks.
 
-Le détail complet (et la matrice des permissions) est dans
-[`AGENTS.md`](AGENTS.md) — à lire pour tout changement touchant micro, tray,
-fenêtres, frappe au curseur ou packaging.
+The full details (and the permission matrix) live in [`AGENTS.md`](AGENTS.md) —
+read it for any change touching microphone, tray, windows, type-at-cursor, or
+packaging.
 
 ## Conventions
 
-- **Langue** : chaînes d'UI et libellés en **français**.
-- **Commits** : style [Conventional Commits](https://www.conventionalcommits.org/)
-  concis (ex. `feat(audio): …`, `fix(nix): …`, `ci: …`, `docs: …`).
-- **Issues dans les commits** : utilisez `Refs #N` tant qu'un correctif n'est pas
-  confirmé par le rapporteur ; n'employez `Fixes/Closes #N` que lorsqu'on veut
-  réellement clore l'issue au merge.
-- **Style** : laissez `cargo fmt` et le formateur du frontend décider ; pas de
-  reformatage massif non lié à votre changement.
+- **Language:** keep UI strings and labels in **French**.
+- **Commits:** concise [Conventional Commits](https://www.conventionalcommits.org/)
+  (e.g. `feat(audio): …`, `fix(nix): …`, `ci: …`, `docs: …`).
+- **Issues in commits:** use `Refs #N` while a fix isn't yet confirmed by the
+  reporter; only use `Fixes/Closes #N` when you really want to close the issue on
+  merge.
+- **Style:** let `cargo fmt` and the frontend formatter decide; avoid unrelated
+  mass-reformatting.
 
-## Dépendances & sécurité
+## Dependencies & security
 
-- Les mises à jour sont automatisées : **Dependabot** (crates Rust + GitHub
-  Actions) et des bots maison pour **bun** (`update-bun.yml`) et **`flake.lock`**
+- Updates are automated: **Dependabot** (Rust crates + GitHub Actions) plus
+  in-house bots for **bun** (`update-bun.yml`) and **`flake.lock`**
   (`update-flake-lock.yml`).
-- **Si vous modifiez les dépendances frontend** (`package.json` / `bun.lock`),
-  l'empreinte `bunDepsHash` du `flake.nix` doit suivre. Lancez :
+- **If you change frontend dependencies** (`package.json` / `bun.lock`), the
+  `bunDepsHash` in `flake.nix` must follow. Run:
   ```bash
-  bash scripts/sync-bun-deps-hash.sh   # re-pin automatique (no-op si déjà bon)
+  bash scripts/sync-bun-deps-hash.sh   # auto re-pin (no-op if already correct)
   ```
-- **Sécurité** : `cargo audit` (RustSec) et `bun audit` tournent en CI ; **CodeQL**
-  analyse le code (JS/TS + Rust). Une PR qui introduit une vulnérabilité connue
-  est bloquée. Merci de **ne jamais** committer de clé API / secret (les clés
-  vivent dans le trousseau de l'OS, jamais en clair).
+- **Security:** `cargo audit` (RustSec) and `bun audit` run in CI; **CodeQL**
+  analyses the code (JS/TS + Rust). A PR introducing a known vulnerability is
+  blocked. Please **never** commit an API key / secret (keys live in the OS
+  keychain, never in plaintext).
 
-## Processus de Pull Request
+## Pull request process
 
-1. Forkez et créez une branche depuis `main`
-   (`feat/ma-feature`, `fix/le-bug`…).
-2. Faites passer les [vérifications](#vérifications-avant-de-proposer-une-pr) en local.
-3. Ouvrez la PR vers `main` en remplissant le gabarit. Décrivez le **quoi** et le
-   **pourquoi**, et la/les **plateformes testées**.
-4. La CI doit être **verte** (frontend, rust, `cargo check` Windows/macOS, Nix,
-   CodeQL, audits). Répondez aux retours de revue.
-5. Le merge se fait en **squash** une fois la PR validée.
+1. Fork and create a branch off `main` (`feat/my-feature`, `fix/the-bug`…).
+2. Make the [checks](#checks-before-opening-a-pr) pass locally.
+3. Open the PR against `main` and fill in the template. Describe the **what** and
+   the **why**, and the **platform(s) tested**.
+4. CI must be **green** (frontend, rust, `cargo check` Windows/macOS, Nix,
+   CodeQL, audits). Address review feedback.
+5. Merge is done via **squash** once the PR is approved.
 
-## Releases (mainteneurs)
+## Releases (maintainers)
 
 ```bash
-node scripts/bump-version.mjs <patch|minor|major>   # synchronise package.json / tauri.conf.json / Cargo.toml
+node scripts/bump-version.mjs <patch|minor|major>   # syncs package.json / tauri.conf.json / Cargo.toml
 git commit -am "chore(release): vX.Y.Z"
 git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin main vX.Y.Z
 ```
 
-Le push du tag déclenche le build et la publication multiplateforme
-(Linux / macOS / Windows).
+Pushing the tag triggers the cross-platform build and publish (Linux / macOS /
+Windows).
 
-## Signaler un bug / proposer une fonctionnalité
+## Reporting a bug / requesting a feature
 
-Ouvrez une [issue](https://github.com/Devitek/sonora/issues/new/choose) et choisissez
-le gabarit adapté (**Rapport de bug** ou **Demande de fonctionnalité**). Plus le
-contexte est précis (OS, mode d'installation, version, fournisseur de
-transcription, logs), plus c'est rapide à traiter.
+Open an [issue](https://github.com/Devitek/sonora/issues/new/choose) and pick the
+right template (**Bug report** or **Feature request**). The more context (OS,
+install method, version, transcription provider, logs), the faster it gets
+triaged.
 
-## Licence
+## License
 
-En contribuant, vous acceptez que votre contribution soit publiée sous la licence
-**MIT** du projet (voir [`LICENSE`](LICENSE)).
+By contributing, you agree that your contribution is published under the
+project's **MIT** license (see [`LICENSE`](LICENSE)).
