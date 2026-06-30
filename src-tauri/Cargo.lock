@@ -4248,7 +4248,7 @@ dependencies = [
 
 [[package]]
 name = "sonora"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "base64 0.22.1",
  "cpal",
