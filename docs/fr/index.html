@@ -1,27 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sonora — Real-time voice dictation on your desktop</title>
+    <title>Sonora — Dictée vocale en temps réel sur votre bureau</title>
     <meta
       name="description"
-      content="Sonora is a floating voice-dictation bar for macOS, Windows and Linux. Speak and the text appears live at your cursor. Gemini, Mistral, OpenAI, Groq or fully local Whisper."
+      content="Sonora est une barre flottante de dictée vocale pour macOS, Windows et Linux. Parlez, le texte s'écrit en direct au curseur. Gemini, Mistral, OpenAI, Groq ou Whisper 100 % local."
     />
     <meta name="theme-color" content="#0A0B12" />
-    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
     <link rel="alternate" hreflang="en" href="https://devitek.github.io/sonora/" />
     <link rel="alternate" hreflang="fr" href="https://devitek.github.io/sonora/fr/" />
     <link rel="alternate" hreflang="x-default" href="https://devitek.github.io/sonora/" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Sonora — Real-time voice dictation" />
+    <meta property="og:title" content="Sonora — Dictée vocale en temps réel" />
     <meta
       property="og:description"
-      content="Speak and the text appears live at your cursor. Cloud or 100% local models. macOS · Windows · Linux."
+      content="Parlez, le texte s'écrit en direct au curseur. Modèles cloud ou 100 % locaux. macOS · Windows · Linux."
     />
-    <meta property="og:image" content="assets/logo.svg" />
+    <meta property="og:image" content="../assets/logo.svg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,23 +29,23 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="../assets/styles.css" />
   </head>
   <body>
     <!-- ===================== NAV ===================== -->
     <header class="nav">
       <div class="wrap">
         <a class="brand" href="index.html">
-          <img src="assets/logo.svg" alt="" />
+          <img src="../assets/logo.svg" alt="" />
           Sonora
         </a>
         <nav class="nav-links">
-          <a href="#features" class="hide-sm">Features</a>
-          <a href="#providers" class="hide-sm">Engines</a>
-          <a href="#demo" class="hide-sm">Demo</a>
+          <a href="#features" class="hide-sm">Fonctionnalités</a>
+          <a href="#providers" class="hide-sm">Moteurs</a>
+          <a href="#demo" class="hide-sm">Démo</a>
           <a href="docs.html">Documentation</a>
           <a href="https://github.com/Devitek/sonora" target="_blank" rel="noopener">GitHub</a>
-          <a href="fr/index.html" hreflang="fr">Français</a>
+          <a href="../index.html" hreflang="en">English</a>
         </nav>
       </div>
     </header>
@@ -54,26 +54,24 @@
       <!-- ===================== HERO ===================== -->
       <section class="hero">
         <div class="wrap">
-          <span class="eyebrow"><span class="dot"></span> Open source · 100% built with AI</span>
-          <h1>Speak. <span class="grad-text">The text writes itself.</span></h1>
+          <span class="eyebrow"><span class="dot"></span> Open source · 100 % construit avec une IA</span>
+          <h1>Parlez. <span class="grad-text">Le texte s'écrit.</span></h1>
           <p class="lead">
-            Sonora is a Spotlight-style floating bar, always a shortcut away. Press, dictate, and the text
-            appears <strong>live</strong> — copied to the clipboard or typed straight at your cursor.
+            Sonora est une barre flottante façon Spotlight, toujours à portée de raccourci. Appuyez, dictez,
+            et le texte apparaît <strong>en direct</strong> — copié au presse-papier ou tapé directement à
+            l'endroit de votre curseur.
           </p>
           <div class="hero-cta">
             <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download
+              Télécharger
             </a>
-            <a class="btn btn-ghost" href="docs.html">Read the docs</a>
+            <a class="btn btn-ghost" href="docs.html">Lire la documentation</a>
           </div>
-          <p class="hero-meta">macOS · Windows · Linux — a lightweight binary (Tauri). Free &amp; MIT.</p>
+          <p class="hero-meta">macOS · Windows · Linux — un binaire léger (Tauri). Gratuit &amp; MIT.</p>
 
-          <!-- HERO SCREENSHOT — real UI capture (WebKitGTK render) generated by
-               `nix develop --command bash scripts/screenshots.sh`. Regenerate with that
-               script, or overwrite docs/assets/img/hero.png with your own capture. -->
           <div class="shot">
-            <img src="assets/img/hero.png" alt="The Sonora bar during a dictation, with waveform" width="1280" height="720" />
+            <img src="../assets/img/hero.png" alt="La barre Sonora pendant une dictée, avec waveform" width="1280" height="720" />
           </div>
         </div>
       </section>
@@ -82,54 +80,54 @@
       <section id="features" class="anchor-h">
         <div class="wrap">
           <div class="section-head">
-            <h2>Everything you need to dictate fast</h2>
-            <p>A minimalist tool, designed to stay out of your way.</p>
+            <h2>Tout ce qu'il faut pour dicter vite</h2>
+            <p>Un outil minimaliste, pensé pour rester hors de votre chemin.</p>
           </div>
           <div class="grid">
             <article class="card">
               <div class="ico">🎙️</div>
-              <h3>Streaming dictation</h3>
-              <p>Text appears as you speak (with Gemini Live).</p>
+              <h3>Dictée en streaming</h3>
+              <p>Le texte apparaît au fur et à mesure que vous parlez (avec Gemini Live).</p>
             </article>
             <article class="card">
               <div class="ico">⌨️</div>
-              <h3>Type at cursor</h3>
-              <p>The result is typed where you are, or copied to the clipboard — your choice.</p>
+              <h3>Collage au curseur</h3>
+              <p>Le résultat est tapé là où vous êtes, ou copié au presse-papier, à votre choix.</p>
             </article>
             <article class="card">
               <div class="ico">⌘</div>
-              <h3>Global shortcut</h3>
-              <p>Start and stop dictation without ever leaving your current app.</p>
+              <h3>Raccourci global</h3>
+              <p>Démarrez et arrêtez la dictée sans jamais quitter votre application en cours.</p>
             </article>
             <article class="card">
               <div class="ico">🔌</div>
-              <h3>Pluggable engines</h3>
-              <p>Gemini, Mistral (Voxtral), OpenAI, Groq, any compatible endpoint, or local Whisper.</p>
+              <h3>Moteurs enfichables</h3>
+              <p>Gemini, Mistral (Voxtral), OpenAI, Groq, tout endpoint compatible, ou Whisper local.</p>
             </article>
             <article class="card">
               <div class="ico">✦</div>
-              <h3>Hesitation cleanup</h3>
-              <p>An optional pass removes "uh", false starts and repetitions.</p>
+              <h3>Nettoyage des hésitations</h3>
+              <p>Une passe optionnelle retire les « euh », faux départs et répétitions.</p>
             </article>
             <article class="card">
               <div class="ico">✍️</div>
-              <h3>Reformulation prompts</h3>
-              <p>Transform a dictation through an LLM: formal tone, terminal command, professional rewrite…</p>
+              <h3>Prompts de reformulation</h3>
+              <p>Transformez la dictée via un LLM : ton formel, commande terminal, réécriture pro…</p>
             </article>
             <article class="card">
               <div class="ico">🕘</div>
-              <h3>History</h3>
-              <p>Find and re-copy your previous dictations in one click.</p>
+              <h3>Historique</h3>
+              <p>Retrouvez et recopiez vos dictées précédentes en un clic.</p>
             </article>
             <article class="card">
               <div class="ico">🔐</div>
-              <h3>Keys in the keychain</h3>
-              <p>Your API keys are stored in the OS keyring, never in plaintext on the interface.</p>
+              <h3>Clés au trousseau</h3>
+              <p>Vos clés API sont stockées dans le keyring de l'OS, jamais en clair côté interface.</p>
             </article>
             <article class="card">
               <div class="ico">🌗</div>
-              <h3>Theme &amp; waveform</h3>
-              <p>Light, dark or system, with a sound wave driven by the real audio level.</p>
+              <h3>Thème &amp; waveform</h3>
+              <p>Clair, sombre ou système, avec une onde sonore pilotée par le vrai niveau audio.</p>
             </article>
           </div>
         </div>
@@ -139,69 +137,69 @@
       <section id="providers" class="anchor-h">
         <div class="wrap">
           <div class="section-head">
-            <h2>An engine for every need</h2>
-            <p>From the fastest cloud to 100% offline. You stay in control of your data.</p>
+            <h2>Un moteur pour chaque besoin</h2>
+            <p>Du cloud le plus rapide au 100 % hors-ligne. Vous gardez le contrôle de vos données.</p>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Provider</th>
+                  <th>Fournisseur</th>
                   <th>Transcription</th>
                   <th class="center">Reformulation</th>
-                  <th class="center">Key required</th>
-                  <th class="center">Offline</th>
+                  <th class="center">Clé requise</th>
+                  <th class="center">Hors-ligne</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td><strong>Gemini Live</strong></td>
-                  <td><span class="tag">streaming</span> word-by-word</td>
+                  <td><span class="tag">streaming</span> mot-à-mot</td>
                   <td class="center yes">✓</td>
-                  <td class="center">yes</td>
+                  <td class="center">oui</td>
                   <td class="center no">—</td>
                 </tr>
                 <tr>
                   <td><strong>Mistral (Voxtral)</strong></td>
-                  <td>per segment</td>
+                  <td>par segment</td>
                   <td class="center yes">✓</td>
-                  <td class="center">yes</td>
+                  <td class="center">oui</td>
                   <td class="center no">—</td>
                 </tr>
                 <tr>
                   <td><strong>OpenAI Whisper</strong></td>
-                  <td>per segment</td>
+                  <td>par segment</td>
                   <td class="center yes">✓</td>
-                  <td class="center">yes</td>
+                  <td class="center">oui</td>
                   <td class="center no">—</td>
                 </tr>
                 <tr>
                   <td><strong>Groq Whisper</strong></td>
-                  <td>per segment <span class="tag">fast</span></td>
+                  <td>par segment <span class="tag">rapide</span></td>
                   <td class="center yes">✓</td>
-                  <td class="center">yes</td>
+                  <td class="center">oui</td>
                   <td class="center no">—</td>
                 </tr>
                 <tr>
                   <td><strong>OpenAI-compatible</strong></td>
-                  <td>per segment</td>
+                  <td>par segment</td>
                   <td class="center yes">✓</td>
-                  <td class="center">host-dependent</td>
+                  <td class="center">selon hôte</td>
                   <td class="center">possible</td>
                 </tr>
                 <tr>
-                  <td><strong>Local Whisper</strong> (ggml)</td>
-                  <td>per segment</td>
+                  <td><strong>Whisper local</strong> (ggml)</td>
+                  <td>par segment</td>
                   <td class="center no">—</td>
-                  <td class="center">no</td>
+                  <td class="center">non</td>
                   <td class="center yes">✓</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <p class="hero-meta" style="text-align: center; margin-top: 18px">
-            "Per segment" transcription splits speech with voice-activity detection (VAD);
-            Gemini Live streams the text continuously.
+            La transcription « par segment » découpe la parole via une détection d'activité vocale (VAD) ;
+            Gemini Live renvoie le texte en continu.
           </p>
         </div>
       </section>
@@ -210,34 +208,32 @@
       <section id="how" class="anchor-h">
         <div class="wrap">
           <div class="section-head">
-            <h2>Three steps, that's all</h2>
-            <p>From install to your first dictation in under two minutes.</p>
+            <h2>Trois étapes, c'est tout</h2>
+            <p>De l'installation à votre première dictée en moins de deux minutes.</p>
           </div>
           <div class="steps">
             <div class="step">
               <div>
-                <h3>Install &amp; choose an engine</h3>
-                <p>Download Sonora, open the <strong>Settings</strong> (⚙ icon on the bar), pick a provider and paste your API key (or point to a local Whisper model).</p>
+                <h3>Installez &amp; choisissez un moteur</h3>
+                <p>Téléchargez Sonora, ouvrez les <strong>Réglages</strong> (icône ⚙ de la barre), sélectionnez un fournisseur et collez votre clé API (ou pointez vers un modèle Whisper local).</p>
               </div>
             </div>
             <div class="step">
               <div>
-                <h3>Press the shortcut</h3>
-                <p>The floating bar appears and dictation starts. A sound wave confirms Sonora hears you.</p>
+                <h3>Appuyez sur le raccourci</h3>
+                <p>La barre flottante apparaît, la dictée démarre. Une onde sonore confirme que Sonora vous entend.</p>
               </div>
             </div>
             <div class="step">
               <div>
-                <h3>Text lands at your cursor</h3>
-                <p>Release: the text is typed where you were working, or copied to the clipboard. Reformulate it if needed with your prompts.</p>
+                <h3>Le texte arrive au curseur</h3>
+                <p>Relâchez : le texte est tapé là où vous travailliez, ou copié au presse-papier. Reformulez-le au besoin via vos prompts.</p>
               </div>
             </div>
           </div>
 
-          <!-- WORKFLOW SCREENSHOT — real capture of the bar after dictation (reformulate /
-               copy / clear buttons), generated by scripts/screenshots.sh. -->
           <div class="shot" style="max-width: 920px; margin: 44px auto 0">
-            <img src="assets/img/settings.png" alt="The Sonora bar after a dictation, with the reformulate, copy and clear actions" width="1280" height="720" />
+            <img src="../assets/img/settings.png" alt="La barre Sonora après dictée, avec les actions reformuler, copier et effacer" width="1280" height="720" />
           </div>
         </div>
       </section>
@@ -246,17 +242,14 @@
       <section id="demo" class="anchor-h">
         <div class="wrap">
           <div class="section-head">
-            <h2>Sonora in action</h2>
-            <p>A demo is worth a thousand words: the dictation writes itself live, then lands at the cursor.</p>
+            <h2>Sonora en action</h2>
+            <p>Une démonstration vaut mille mots : la dictée s'écrit en direct, puis arrive au curseur.</p>
           </div>
-          <!-- DEMO VIDEO — drop your clip in docs/assets/img/demo.mp4 and it plays here.
-               The poster (docs/assets/img/demo-poster.png) shows until the video starts.
-               (Tip: a silent, looping H.264 .mp4 makes a great lightweight demo.) -->
           <div class="shot" style="max-width: 920px; margin: 0 auto">
-            <video controls preload="none" muted loop playsinline poster="assets/img/demo-poster.png" width="1280" height="720">
-              <source src="assets/img/demo.mp4" type="video/mp4" />
-              Your browser can't play this video. See the
-              <a href="https://github.com/Devitek/sonora">GitHub page</a> instead.
+            <video controls preload="none" muted loop playsinline poster="../assets/img/demo-poster.png" width="1280" height="720">
+              <source src="../assets/img/demo.mp4" type="video/mp4" />
+              Votre navigateur ne peut pas lire cette vidéo. Voyez plutôt la
+              <a href="https://github.com/Devitek/sonora">page GitHub</a>.
             </video>
           </div>
         </div>
@@ -266,31 +259,31 @@
       <section id="download" class="anchor-h">
         <div class="wrap">
           <div class="section-head">
-            <h2>Download Sonora</h2>
-            <p>Latest version published on GitHub Releases.</p>
+            <h2>Téléchargez Sonora</h2>
+            <p>Dernière version publiée sur GitHub Releases.</p>
           </div>
           <div class="os-grid">
             <div class="os-card">
               <div class="os-ico">🍎</div>
               <h3>macOS</h3>
               <div class="files">.dmg · Apple Silicon + Intel</div>
-              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Download</a>
+              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Télécharger</a>
             </div>
             <div class="os-card">
               <div class="os-ico">🪟</div>
               <h3>Windows</h3>
-              <div class="files">.msi · .exe installer</div>
-              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Download</a>
+              <div class="files">.msi · installeur .exe</div>
+              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Télécharger</a>
             </div>
             <div class="os-card">
               <div class="os-ico">🐧</div>
               <h3>Linux</h3>
               <div class="files">.AppImage · .deb</div>
-              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Download</a>
+              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Télécharger</a>
             </div>
           </div>
           <p class="hero-meta" style="text-align: center; margin-top: 22px">
-            Need help installing? Follow the <a href="docs.html#installation">installation guide</a>.
+            Besoin d'aide pour installer ? Suivez le <a href="docs.html#installation">guide d'installation</a>.
           </p>
         </div>
       </section>
@@ -299,13 +292,13 @@
       <section>
         <div class="wrap">
           <div class="cta">
-            <h2>Ready to dictate?</h2>
-            <p>Open source, free, MIT-licensed. Your keys and your data stay with you.</p>
+            <h2>Prêt à dicter ?</h2>
+            <p>Open source, gratuit, sous licence MIT. Vos clés et vos données restent chez vous.</p>
             <div class="hero-cta">
-              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Download Sonora</a>
+              <a class="btn btn-primary" href="https://github.com/Devitek/sonora/releases/latest" target="_blank" rel="noopener">Télécharger Sonora</a>
               <a class="btn btn-ghost" href="https://github.com/Devitek/sonora" target="_blank" rel="noopener">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.5 18 4.8 18 4.8c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
-                View on GitHub
+                Voir sur GitHub
               </a>
             </div>
           </div>
