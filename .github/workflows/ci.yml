@@ -62,3 +62,28 @@ jobs:
 
       - name: clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+  # Windows-specific compile check. The Linux jobs above can't catch a backend
+  # that fails to build only on Windows (e.g. a crate's WASAPI backend) — that
+  # used to surface only at release-tag time. `cargo check` compiles the deps,
+  # so a Windows-only trait/build error fails here, at PR time.
+  windows:
+    name: cargo check (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      # tauri::generate_context! embeds ../dist, so the frontend must exist.
+      - name: Build frontend (for generate_context!)
+        shell: bash
+        run: |
+          bun install
+          bun run build
+
+      - name: cargo check
+        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
