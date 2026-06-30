@@ -134,11 +134,20 @@ bind = SUPER, V, exec, sonora toggle
 ## Releases & CI
 
 - **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) : sur chaque push/PR,
-  type-check Svelte + `cargo fmt` + `clippy -D warnings`.
+  type-check Svelte + `cargo fmt` + `clippy -D warnings` + `cargo check` sur **Windows
+  et macOS**. S'ajoutent le build **Nix**, l'analyse **CodeQL** et les audits de
+  dépendances (`cargo audit` / `bun audit`).
 - **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) : *Actions →
   Release → Run workflow* avec un bump **semver** (patch/minor/major) → versionne, tague
   `vX.Y.Z`, et publie les binaires **Linux** (`.AppImage`, `.deb`), **macOS** (`.dmg`,
   Apple Silicon + Intel) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
+
+## Contribuer
+
+Les contributions sont les bienvenues ! Consultez le **[guide de contribution](CONTRIBUTING.md)**
+(mise en place, commandes de vérification, conventions, règle d'or permissions/plateformes).
+Pour signaler un bug ou proposer une fonctionnalité, ouvrez une
+[issue](https://github.com/Devitek/sonora/issues/new/choose) avec le gabarit adapté.
 
 ## Marque
 

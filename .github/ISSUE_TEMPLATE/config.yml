@@ -1,0 +1,9 @@
+# Force le choix d'un gabarit (pas d'issue vide).
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://devitek.github.io/sonora/
+    about: Installation, configuration, permissions par OS et dépannage.
+  - name: 🔒 Vulnérabilité de sécurité
+    url: https://github.com/Devitek/sonora/security/advisories/new
+    about: Merci de signaler les failles en privé via un advisory, pas en issue publique.

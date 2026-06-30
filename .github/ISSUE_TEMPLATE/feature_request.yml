@@ -1,0 +1,63 @@
+name: 💡 Demande de fonctionnalité
+description: Proposer une amélioration ou une nouvelle fonctionnalité
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci pour la suggestion ! Décrivez d'abord le **besoin** (le problème à
+        résoudre) avant la solution — ça aide à trouver la meilleure approche.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pré-vérifications
+      options:
+        - label: J'ai cherché dans les issues existantes (ouvertes et fermées).
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Quel problème cela résout-il ?
+      description: Le besoin ou la frustration à l'origine de la demande.
+      placeholder: "En tant qu'utilisateur, je veux… afin de…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+      description: Comment imaginez-vous la fonctionnalité ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+      description: Autres approches ou contournements que vous avez considérés.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Plateformes concernées
+      options:
+        - Toutes
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+      description: Maquettes, exemples d'autres apps, liens utiles…
+    validations:
+      required: false

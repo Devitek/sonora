@@ -1,0 +1,113 @@
+name: 🐞 Rapport de bug
+description: Signaler un dysfonctionnement de Sonora
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler un bug ! Plus le contexte est précis
+        (OS, mode d'installation, version, fournisseur, logs), plus c'est rapide à corriger.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pré-vérifications
+      options:
+        - label: J'ai cherché dans les issues existantes (ouvertes et fermées).
+          required: true
+        - label: J'utilise la dernière version disponible (ou je précise laquelle ci-dessous).
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du problème
+      description: Que se passe-t-il ? Qu'attendiez-vous à la place ?
+      placeholder: Décrivez le comportement observé et le comportement attendu.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      description: La liste la plus précise possible pour reproduire le bug.
+      placeholder: |
+        1. Ouvrir les Réglages…
+        2. Sélectionner le fournisseur…
+        3. Cliquer sur le micro…
+        4. Voir l'erreur…
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version de Sonora
+      description: Visible dans l'app, ou le tag du build téléchargé.
+      placeholder: "ex. v0.2.11"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Système d'exploitation
+      options:
+        - Linux — Wayland (Hyprland, GNOME, KDE…)
+        - Linux — X11
+        - macOS — Apple Silicon (aarch64)
+        - macOS — Intel (x64)
+        - Windows
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: Mode d'installation
+      options:
+        - AppImage (Linux)
+        - Paquet .deb (Linux)
+        - "nix run / nix build (NixOS)"
+        - .dmg (macOS)
+        - .msi ou setup .exe (Windows)
+        - Compilé depuis les sources
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Fournisseur de transcription
+      description: Le moteur configuré au moment du bug (si pertinent).
+      options:
+        - Non concerné / je ne sais pas
+        - Gemini Live (streaming)
+        - OpenAI
+        - Groq
+        - Mistral / Voxtral
+        - OpenAI-compatible (endpoint perso)
+        - Whisper local
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / messages d'erreur
+      description: |
+        Lancé depuis un terminal, Sonora écrit des logs (ex. `[sonora:audio] …`).
+        Collez ici tout message pertinent. **Ne collez jamais de clé API.**
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+      description: Captures d'écran, configuration Hyprland, particularités matérielles (micro USB…), etc.
+    validations:
+      required: false
