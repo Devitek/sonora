@@ -87,3 +87,26 @@ jobs:
 
       - name: cargo check
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+
+  # macOS-specific compile check (CoreAudio backend, Apple frameworks), so a
+  # macOS-only build break is caught at PR time rather than at release-tag time.
+  macos:
+    name: cargo check (macos)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      # tauri::generate_context! embeds ../dist, so the frontend must exist.
+      - name: Build frontend (for generate_context!)
+        shell: bash
+        run: |
+          bun install
+          bun run build
+
+      - name: cargo check
+        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
