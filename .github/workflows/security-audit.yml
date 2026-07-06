@@ -43,9 +43,18 @@ jobs:
         with:
           tool: cargo-audit
       # Fails on vulnerabilities; unmaintained/unsound are warnings (non-fatal).
-      # Add `--ignore RUSTSEC-XXXX-YYYY` here to silence a vetted advisory.
+      #
+      # Ignored (vetted) advisories — both are quick-xml <0.41 DoS bugs. The
+      # runtime path (plist) is fixed by using quick-xml 0.41. The only remaining
+      # 0.39.x copy comes from `wayland-scanner`, a BUILD-TIME proc-macro that
+      # parses trusted Wayland protocol XML at compile time and is NOT shipped in
+      # the binary — no runtime attack surface. Remove these once the
+      # wayland-rs / wl-clipboard-rs stack (pinned via arboard) moves to 0.41.
       - name: cargo audit
-        run: cargo audit --file src-tauri/Cargo.lock
+        run: >
+          cargo audit --file src-tauri/Cargo.lock
+          --ignore RUSTSEC-2026-0194
+          --ignore RUSTSEC-2026-0195
 
   bun-audit:
     name: bun audit (npm advisories)
