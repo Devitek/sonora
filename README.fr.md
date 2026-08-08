@@ -19,7 +19,7 @@
 <p align="center">
   <a href="README.md">English</a> · <strong>Français</strong>
   &nbsp;·&nbsp;
-  <strong><a href="https://devitek.github.io/sonora/">🌐 Site &amp; documentation</a></strong>
+  <strong><a href="https://sonora.devitek.fr/">🌐 Site &amp; documentation</a></strong>
 </p>
 
 > 🤖 **Projet open source, intégralement construit avec une IA — et c'est assumé.**
