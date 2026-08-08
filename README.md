@@ -5,7 +5,7 @@
 <h1 align="center">Sonora</h1>
 
 <p align="center">
-  <em>Real-time speech-to-text on your desktop — cloud or 100% local models.</em>
+  <em>Open-source real-time <strong>voice dictation</strong> for macOS, Windows &amp; Linux — speak and the text lands at your cursor. A free, cross-platform alternative to Wispr Flow &amp; superwhisper, with cloud engines (Gemini, Mistral, OpenAI, Groq) or 100% local Whisper.</em>
 </p>
 
 <p align="center">

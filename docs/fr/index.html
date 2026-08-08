@@ -3,25 +3,122 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sonora — Dictée vocale en temps réel sur votre bureau</title>
+    <title>Sonora — Dictée vocale open-source pour macOS, Windows &amp; Linux</title>
     <meta
       name="description"
-      content="Sonora est une barre flottante de dictée vocale pour macOS, Windows et Linux. Parlez, le texte s'écrit en direct au curseur. Gemini, Mistral, OpenAI, Groq ou Whisper 100 % local."
+      content="Sonora est une barre flottante de dictée vocale gratuite et open-source pour macOS, Windows et Linux. Un raccourci, vous parlez, le texte s'écrit en direct au curseur — via Gemini, Mistral, OpenAI, Groq ou Whisper 100 % local."
     />
+    <meta
+      name="keywords"
+      content="dictée vocale, reconnaissance vocale, speech to text, transcription, dictée open source, Whisper, Whisper local, saisie vocale, écrire au curseur, Gemini Live, dictée macOS, dictée Windows, dictée Linux, alternative Wispr Flow, alternative superwhisper, alternative Dragon"
+    />
+    <meta name="author" content="Devitek" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <meta name="theme-color" content="#0A0B12" />
     <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+
+    <!-- Canonical & language alternates -->
+    <link rel="canonical" href="https://devitek.github.io/sonora/fr/" />
     <link rel="alternate" hreflang="en" href="https://devitek.github.io/sonora/" />
     <link rel="alternate" hreflang="fr" href="https://devitek.github.io/sonora/fr/" />
     <link rel="alternate" hreflang="x-default" href="https://devitek.github.io/sonora/" />
 
+    <!-- Google Search Console verification — replace REPLACE_WITH_TOKEN with your token -->
+    <meta name="google-site-verification" content="REPLACE_WITH_TOKEN" />
+
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Sonora — Dictée vocale en temps réel" />
+    <meta property="og:site_name" content="Sonora" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:url" content="https://devitek.github.io/sonora/fr/" />
+    <meta property="og:title" content="Sonora — Dictée vocale open-source pour macOS, Windows &amp; Linux" />
     <meta
       property="og:description"
-      content="Parlez, le texte s'écrit en direct au curseur. Modèles cloud ou 100 % locaux. macOS · Windows · Linux."
+      content="Un raccourci, vous parlez, le texte s'écrit en direct au curseur. Modèles cloud ou 100 % locaux. Gratuit &amp; open-source."
     />
-    <meta property="og:image" content="../assets/logo.svg" />
+    <meta property="og:image" content="https://devitek.github.io/sonora/assets/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Sonora — dictée vocale en temps réel pour macOS, Windows et Linux" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sonora — Dictée vocale open-source" />
+    <meta
+      name="twitter:description"
+      content="Un raccourci, vous parlez, le texte s'écrit en direct au curseur. Cloud ou Whisper 100 % local. Gratuit &amp; open-source."
+    />
+    <meta name="twitter:image" content="https://devitek.github.io/sonora/assets/og-image.png" />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Sonora",
+        "description": "Barre flottante de dictée vocale gratuite et open-source pour macOS, Windows et Linux. Parlez et le texte s'écrit en direct au curseur, via des moteurs cloud (Gemini, Mistral, OpenAI, Groq) ou Whisper 100 % local.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "macOS, Windows, Linux",
+        "url": "https://devitek.github.io/sonora/fr/",
+        "downloadUrl": "https://github.com/Devitek/sonora/releases/latest",
+        "softwareHelp": "https://devitek.github.io/sonora/fr/docs.html",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "screenshot": "https://devitek.github.io/sonora/assets/img/hero.png",
+        "inLanguage": ["fr", "en"],
+        "author": { "@type": "Organization", "name": "Devitek", "url": "https://github.com/Devitek" },
+        "sameAs": ["https://github.com/Devitek/sonora"]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Sonora",
+        "url": "https://devitek.github.io/sonora/fr/",
+        "inLanguage": ["fr", "en"]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Sonora est-il gratuit ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Sonora est 100 % gratuit et open-source sous licence MIT. Pas de compte, pas d'abonnement — vous utilisez votre propre clé API pour les moteurs cloud, ou tout en local gratuitement avec Whisper." }
+          },
+          {
+            "@type": "Question",
+            "name": "Sonora fonctionne-t-il hors-ligne ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Avec le moteur Whisper local intégré (ggml), la transcription s'exécute entièrement sur votre machine — sans clé API, sans connexion Internet, et rien ne quitte votre ordinateur." }
+          },
+          {
+            "@type": "Question",
+            "name": "Quelles plateformes Sonora prend-il en charge ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Sonora tourne sur macOS (Apple Silicon et Intel), Windows et Linux. Il est livré sous forme de binaire natif léger construit avec Tauri." }
+          },
+          {
+            "@type": "Question",
+            "name": "Sonora est-il une alternative open-source à Wispr Flow, superwhisper ou Dragon ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Sonora est une alternative gratuite, multiplateforme et respectueuse de la vie privée aux outils de dictée vocale comme Wispr Flow, superwhisper et Dragon NaturallySpeaking. Vous choisissez votre moteur (Gemini, Mistral, OpenAI, Groq ou tout endpoint compatible OpenAI) ou exécutez Whisper 100 % local." }
+          },
+          {
+            "@type": "Question",
+            "name": "Mes clés API et mes dictées sont-elles privées ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Vos clés API sont stockées dans le trousseau du système d'exploitation, jamais en clair. L'audio n'est envoyé qu'au fournisseur que vous choisissez — ou nulle part avec Whisper local." }
+          },
+          {
+            "@type": "Question",
+            "name": "Sonora écrit-il directement là où je travaille ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui. Sonora écrit le texte directement au curseur, ou le copie dans le presse-papiers. Sous Linux il utilise wtype (Wayland) ou xdotool (X11) ; sous macOS il nécessite la permission Accessibilité." }
+          }
+        ]
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -43,6 +140,7 @@
           <a href="#features" class="hide-sm">Fonctionnalités</a>
           <a href="#providers" class="hide-sm">Moteurs</a>
           <a href="#demo" class="hide-sm">Démo</a>
+          <a href="#faq" class="hide-sm">FAQ</a>
           <a href="docs.html">Documentation</a>
           <a href="https://github.com/Devitek/sonora" target="_blank" rel="noopener">GitHub</a>
           <a href="../index.html" hreflang="en">English</a>
@@ -71,7 +169,7 @@
           <p class="hero-meta">macOS · Windows · Linux — un binaire léger (Tauri). Gratuit &amp; MIT.</p>
 
           <div class="shot">
-            <img src="../assets/img/hero.png" alt="La barre Sonora pendant une dictée, avec waveform" width="1280" height="720" />
+            <img src="../assets/img/hero.png" alt="La barre Sonora pendant une dictée, avec waveform" width="1280" height="720" fetchpriority="high" />
           </div>
         </div>
       </section>
@@ -233,7 +331,7 @@
           </div>
 
           <div class="shot" style="max-width: 920px; margin: 44px auto 0">
-            <img src="../assets/img/settings.png" alt="La barre Sonora après dictée, avec les actions reformuler, copier et effacer" width="1280" height="720" />
+            <img src="../assets/img/settings.png" alt="La barre Sonora après dictée, avec les actions reformuler, copier et effacer" width="1280" height="720" loading="lazy" />
           </div>
         </div>
       </section>
@@ -285,6 +383,42 @@
           <p class="hero-meta" style="text-align: center; margin-top: 22px">
             Besoin d'aide pour installer ? Suivez le <a href="docs.html#installation">guide d'installation</a>.
           </p>
+        </div>
+      </section>
+
+      <!-- ===================== FAQ ===================== -->
+      <section id="faq" class="anchor-h">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>Questions fréquentes</h2>
+            <p>Tout ce qu'il faut savoir avant votre première dictée.</p>
+          </div>
+          <div class="faq">
+            <details>
+              <summary>Sonora est-il gratuit ?</summary>
+              <p>Oui — Sonora est 100 % gratuit et open-source sous licence MIT. Pas de compte, pas d'abonnement. Utilisez votre propre clé API pour les moteurs cloud, ou tout en local gratuitement avec Whisper.</p>
+            </details>
+            <details>
+              <summary>Sonora fonctionne-t-il hors-ligne ?</summary>
+              <p>Oui. Avec le moteur <strong>Whisper local</strong> intégré (ggml), la transcription s'exécute entièrement sur votre machine — sans clé API, sans Internet, et rien ne quitte votre ordinateur.</p>
+            </details>
+            <details>
+              <summary>Quelles plateformes Sonora prend-il en charge ?</summary>
+              <p>macOS (Apple Silicon &amp; Intel), Windows et Linux. Sonora est livré sous forme de binaire natif léger construit avec Tauri.</p>
+            </details>
+            <details>
+              <summary>Sonora est-il une alternative open-source à Wispr Flow, superwhisper ou Dragon ?</summary>
+              <p>Oui — Sonora est une alternative gratuite, multiplateforme et respectueuse de la vie privée aux outils de dictée vocale comme Wispr Flow, superwhisper et Dragon NaturallySpeaking. Vous choisissez votre moteur (Gemini, Mistral, OpenAI, Groq ou tout endpoint compatible OpenAI) ou exécutez Whisper 100 % local.</p>
+            </details>
+            <details>
+              <summary>Mes clés API et mes dictées sont-elles privées ?</summary>
+              <p>Vos clés API vivent dans le trousseau du système, jamais en clair. L'audio n'est envoyé qu'au fournisseur que vous choisissez — ou nulle part avec Whisper local.</p>
+            </details>
+            <details>
+              <summary>Sonora écrit-il directement là où je travaille ?</summary>
+              <p>Oui — Sonora écrit le texte directement au curseur, ou le copie dans le presse-papiers. Sous Linux il utilise <code>wtype</code> (Wayland) ou <code>xdotool</code> (X11) ; sous macOS il nécessite la permission Accessibilité.</p>
+            </details>
+          </div>
         </div>
       </section>
 

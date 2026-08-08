@@ -5,7 +5,7 @@
 <h1 align="center">Sonora</h1>
 
 <p align="center">
-  <em>Transcription vocale en temps réel, sur votre bureau — modèles cloud ou 100 % locaux.</em>
+  <em><strong>Dictée vocale</strong> open-source en temps réel pour macOS, Windows &amp; Linux — parlez et le texte s'écrit au curseur. Une alternative gratuite et multiplateforme à Wispr Flow &amp; superwhisper, avec des moteurs cloud (Gemini, Mistral, OpenAI, Groq) ou Whisper 100 % local.</em>
 </p>
 
 <p align="center">
