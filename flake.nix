@@ -98,7 +98,7 @@
         };
 
         bunDepsHash = {
-          x86_64-linux = "sha256-b2ssId1mmSHvrXfnGNtmRzeGHPDd1/dxcCzwR9bUzFE=";
+          x86_64-linux = "sha256-r3xPyhraqcmkN3bURxedWgKWAL/VPEqb84MV2LlOTd8=";
         }.${system} or lib.fakeHash;
 
         bunDeps = pkgs.stdenvNoCC.mkDerivation {
