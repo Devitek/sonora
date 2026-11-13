@@ -1,123 +1,70 @@
 <p align="center">
-  <img src="brand/logo.svg" alt="Sonora" width="116" height="116">
+  <img src="brand/logo.svg" alt="" width="116" height="116">
 </p>
 
 <h1 align="center">Sonora</h1>
 
+<p align="center">Dictée vocale en temps réel pour macOS, Windows et Linux, tapée à votre curseur.</p>
+
 <p align="center">
-  <em><strong>Dictée vocale</strong> open-source en temps réel pour macOS, Windows &amp; Linux — parlez et le texte s'écrit au curseur. Une alternative gratuite et multiplateforme à Wispr Flow &amp; superwhisper, avec des moteurs cloud (Gemini, Mistral, OpenAI, Groq) ou Whisper 100 % local.</em>
+  <a href="https://github.com/Devitek/sonora/releases/latest"><img src="https://img.shields.io/github/v/release/Devitek/sonora?style=flat-square&label=release&labelColor=141517&color=F0703A" alt="Dernière version"></a>
+  <a href="https://github.com/Devitek/sonora/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Devitek/sonora/ci.yml?branch=main&style=flat-square&label=ci&labelColor=141517" alt="CI"></a>
+  <a href="https://github.com/Devitek/sonora/releases"><img src="https://img.shields.io/github/downloads/Devitek/sonora/total?style=flat-square&label=downloads&labelColor=141517&color=F0703A" alt="Téléchargements"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-F6F5F2?style=flat-square&labelColor=141517" alt="Licence"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Devitek/sonora/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Devitek/sonora/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/Devitek/sonora/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Devitek/sonora/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="platform" src="https://img.shields.io/badge/macOS%20·%20Windows%20·%20Linux-0a0b12?style=flat-square">
-  <img alt="built with" src="https://img.shields.io/badge/Tauri%20·%20Svelte%205%20·%20Rust-7C5CFF?style=flat-square">
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-22D3EE?style=flat-square">
+  <a href="https://sonora.devitek.fr/fr/">Site</a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="#utilisation">Utilisation</a> ·
+  <a href="#documentation">Documentation</a> ·
+  <a href="CONTRIBUTING.md">Contribuer</a> ·
+  <a href="README.md">English</a>
 </p>
 
-<p align="center">
-  <a href="README.md">English</a> · <strong>Français</strong>
-  &nbsp;·&nbsp;
-  <strong><a href="https://sonora.devitek.fr/">🌐 Site &amp; documentation</a></strong>
-</p>
+Sonora est une barre flottante façon Spotlight, toujours à portée de raccourci : vous appuyez, vous parlez, le texte s'écrit en direct, puis il arrive dans le presse-papier ou est tapé directement à l'endroit de votre curseur. Branchez le moteur de votre choix (Gemini, Mistral, OpenAI, Groq, n'importe quel endpoint compatible OpenAI) ou Whisper 100 % local et hors-ligne. Une alternative gratuite et open source à Wispr Flow et superwhisper.
 
-> 🤖 **Projet open source, intégralement construit avec une IA — et c'est assumé.**
-> Sonora a été conçu et codé de bout en bout par un agent IA (architecture, backend
-> Rust/Tauri, frontend Svelte 5, CI/CD, design de marque), en binôme avec un humain qui
-> orientait et testait sur sa machine. Le code, les commits et ce README sont le résultat
-> de cette collaboration. À prendre comme une démonstration de ce qu'on peut bâtir ainsi —
-> avec ses qualités… et la nécessité de relire ce qui touche à la sécurité.
+> [!NOTE]
+> Sonora a été conçu et codé de bout en bout par un agent IA, en binôme avec un humain qui orientait et testait. À prendre comme une démonstration de ce qu'on peut bâtir ainsi, et à relire pour tout ce qui touche à la sécurité.
 
----
+## Installation
 
-## ✦ C'est quoi
+Téléchargez le build de votre système depuis la [dernière release](https://github.com/Devitek/sonora/releases/latest) : `.dmg` (Apple Silicon et Intel), `.msi` ou `.exe` (Windows), `.AppImage` ou `.deb` (Linux).
 
-Une **barre flottante façon Spotlight**, toujours à portée de raccourci. Vous appuyez, vous
-parlez, le texte s'écrit **en direct** — puis il est copié dans le presse-papier ou **tapé
-directement à l'endroit de votre curseur**. Branchez le moteur de votre choix : **Gemini**,
-**Mistral**, **OpenAI**, **Groq**, n'importe quel endpoint **compatible OpenAI**, ou
-**Whisper 100 % local et hors-ligne**.
+**NixOS / Nix** : le flake fournit un paquet natif, recommandé plutôt que l'AppImage (qui bute sur les pilotes EGL / bubblewrap) :
+
+```sh
+nix run github:Devitek/sonora
+```
+
+## Utilisation
+
+Ouvrez les **Réglages** (⚙ sur la barre), choisissez un fournisseur de transcription et collez sa clé API (stockée dans le trousseau du système). En option : micro, modèle, langue, URL de base ou modèle `ggml` local, nettoyage automatique et prompts de reformulation. Démarrez et arrêtez ensuite la dictée avec le raccourci global.
+
+| Fournisseur | Transcription | Reformulation | Clé requise | Hors-ligne |
+| --- | --- | :---: | :---: | :---: |
+| **Gemini Live** | streaming, mot à mot | ✓ | oui | — |
+| **Mistral (Voxtral)** | par segment | ✓ | oui | — |
+| **OpenAI Whisper** | par segment | ✓ | oui | — |
+| **Groq Whisper** | par segment | ✓ | oui | — |
+| **Compatible OpenAI** | par segment | ✓ | selon l'hôte | possible |
+| **Whisper local** (ggml) | par segment | — | non | ✓ |
+
+« Par segment » découpe la parole par détection d'activité vocale et transcrit chaque segment ; Gemini Live diffuse le texte en continu.
 
 ## Fonctionnalités
 
-- 🎙️ **Dictée en streaming** — le texte apparaît au fur et à mesure (avec Gemini Live).
-- ⌨️ **Collage au curseur** — le résultat est tapé là où vous êtes (ou copié au presse-papier).
-- ⌘ **Raccourci global** — démarrez/arrêtez sans quitter votre application en cours.
-- 🔌 **Modèles enfichables** — Gemini Live, Mistral (Voxtral), OpenAI Whisper, Groq,
-  OpenAI-compatible, Whisper local.
-- ✦ **Nettoyage des hésitations** — passe optionnelle qui retire les « euh », faux départs,
-  répétitions.
-- ✍️ **Prompts de reformulation** — transformez une dictée via un LLM avec vos propres prompts
-  (« reformuler de manière formelle », « convertir en commande terminal », « réécrire pro »…).
-- 🕘 **Historique** — retrouvez et recopiez vos dictées précédentes.
-- 🌗 **Thème** clair / sombre / système.
-- 〰️ **Waveform en direct** pilotée par le vrai niveau audio.
-- 🔐 **Clés API au trousseau** — stockées dans le keyring de l'OS (repli fichier `0600`),
-  jamais en clair côté front.
-- 🖥️ **Multiplateforme** — un binaire léger (Tauri) sur macOS, Windows et Linux.
+- **Dictée en streaming** : le texte apparaît pendant que vous parlez (Gemini Live).
+- **Frappe au curseur**, ou copie dans le presse-papier.
+- **Raccourci global** : démarrer et arrêter sans quitter votre application.
+- **Nettoyage des hésitations** : retire les « euh », faux départs et répétitions.
+- **Prompts de reformulation** : passez une dictée dans un LLM avec vos propres prompts (« réécris formellement », « convertis en commande terminal »…).
+- **Historique** des dictées, **thème** clair / sombre / système, **waveform** en direct.
+- **Clés API dans le trousseau du système** (repli fichier `0600`), jamais en clair côté frontend.
 
-## Providers
+## Barre flottante sous Hyprland
 
-| Fournisseur          | Transcription      | Reformulation | Clé requise | Hors-ligne |
-| -------------------- | ------------------ | :-----------: | :---------: | :--------: |
-| **Gemini Live**      | streaming, mot-à-mot | ✓           |     oui     |     —      |
-| **Mistral (Voxtral)**| par segment        | ✓             |     oui     |     —      |
-| **OpenAI Whisper**   | par segment        | ✓             |     oui     |     —      |
-| **Groq Whisper**     | par segment        | ✓             |     oui     |     —      |
-| **OpenAI-compatible**| par segment        | ✓             | selon hôte  |  possible  |
-| **Whisper local** (ggml) | par segment    |       —       |     non     |     ✓      |
-
-> La transcription « par segment » découpe la parole via une détection d'activité vocale (VAD)
-> et transcrit chaque segment ; Gemini Live, lui, renvoie le texte en continu.
-
-## Installation / développement
-
-Prérequis : **Rust** (stable), **Bun**, et les [dépendances système Tauri](https://tauri.app/start/prerequisites/)
-(WebKitGTK, etc.).
-
-```bash
-bun install
-bun run tauri dev      # développement
-bun run tauri build    # build de production (binaire dans src-tauri/target/release/sonora)
-```
-
-**NixOS / Nix** — le flake expose un package natif (recommandé sur NixOS plutôt que
-l'AppImage, qui se heurte aux pilotes EGL/bubblewrap) :
-
-```bash
-nix run github:Devitek/sonora      # lance directement
-nix build github:Devitek/sonora    # -> ./result/bin/sonora
-```
-
-…et un devshell complet (WebKitGTK, ALSA, cmake, wtype…) pour le développement :
-
-```bash
-nix develop
-bash scripts/dev.sh    # libère le port Vite résiduel puis lance `tauri dev`
-```
-
-## Configuration (⚙)
-
-Ouvrez les **Réglages** (icône ⚙ de la barre) :
-
-1. Choisissez un **fournisseur** de transcription.
-2. Collez la **clé API** correspondante (stockée dans le trousseau de l'OS).
-3. Optionnel : choisissez le **microphone** (source de capture ; « Système » suit le micro par
-   défaut de l'OS, ↻ rafraîchit la liste).
-4. Optionnel : modèle, langue, URL de base (endpoints compatibles), chemin du modèle `ggml`
-   (Whisper local).
-5. Optionnel : activez le **nettoyage automatique**, choisissez son **moteur de reformulation**,
-   et définissez vos **prompts** personnalisés.
-
-> Pour le développement, ces réglages peuvent aussi venir d'un fichier `.env` (voir
-> [`.env.example`](.env.example)).
-
-## Barre flottante sous Linux (Hyprland)
-
-Sonora est une fenêtre **transparente, sans décorations, sans focus**. Sous un compositeur
-tuilant comme Hyprland, faites-la flotter et bindez le raccourci global. Syntaxe pour les
-versions récentes de Hyprland (sélecteur `match:`) :
+Sonora est une fenêtre transparente, sans décoration ni focus. Sous un compositeur en tuiles, rendez-la flottante et liez le raccourci (syntaxe `match:` des versions récentes d'Hyprland) :
 
 ```ini
 windowrule = float on,            match:title ^(Sonora)$
@@ -129,36 +76,44 @@ windowrule = no_blur on,          match:title ^(Sonora)$
 windowrule = pin on,              match:title ^(Sonora)$
 windowrule = no_initial_focus on, match:title ^(Sonora)$
 
-# Push-to-talk : lance une 2ᵉ instance qui transmet l'action à celle en cours (single-instance)
+# Push-to-talk : une 2e instance transmet l'action à celle qui tourne
 bind = SUPER, V, exec, sonora toggle
 ```
 
-## Releases & CI
+## Développement
 
-- **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) : sur chaque push/PR,
-  type-check Svelte + `cargo fmt` + `clippy -D warnings` + `cargo check` sur **Windows
-  et macOS**. S'ajoutent le build **Nix**, l'analyse **CodeQL** et les audits de
-  dépendances (`cargo audit` / `bun audit`).
-- **Release** ([`.github/workflows/release.yml`](.github/workflows/release.yml)) : *Actions →
-  Release → Run workflow* avec un bump **semver** (patch/minor/major) → versionne, tague
-  `vX.Y.Z`, et publie les binaires **Linux** (`.AppImage`, `.deb`), **macOS** (`.dmg`,
-  Apple Silicon + Intel) et **Windows** (`.msi`, NSIS) sur la Release GitHub.
+Prérequis : Rust (stable), Bun et les [dépendances système de Tauri](https://tauri.app/start/prerequisites/).
+
+```sh
+bun install
+bun run tauri dev      # développement
+bun run tauri build    # binaire dans src-tauri/target/release/sonora
+```
+
+Sous Nix, `nix develop` fournit toute la chaîne ; puis `bash scripts/dev.sh`. Les réglages peuvent aussi venir d'un fichier `.env` (voir [`.env.example`](.env.example)). La CI vérifie les types Svelte et lance `cargo fmt`, `clippy -D warnings` et `cargo check` sous Windows et macOS, plus le build Nix, CodeQL et les audits de dépendances ; les releases se font depuis *Actions → Release* avec un bump SemVer.
+
+## Documentation
+
+- [Site et documentation](https://sonora.devitek.fr/fr/)
+- [Charte graphique](brand/) : logo, symbole, couleurs (violet `#7C5CFF` → cyan `#22D3EE`, fond `#0A0B12`), typographies
 
 ## Contribuer
 
-Les contributions sont les bienvenues ! Consultez le **[guide de contribution](CONTRIBUTING.md)**
-(en anglais) — mise en place, commandes de vérification, conventions, règle d'or
-permissions/plateformes. Pour signaler un bug ou proposer une fonctionnalité, ouvrez une
-[issue](https://github.com/Devitek/sonora/issues/new/choose) avec le gabarit adapté.
-
-## Marque
-
-Ressources visuelles dans [`brand/`](brand/) :
-
-- `logo.svg` — icône (dégradé, fond arrondi) · `logo-mark.svg` / `logo-mark-white.svg` — symbole seul
-- Couleurs : violet `#7C5CFF` → cyan `#22D3EE` · fond sombre `#0A0B12`
-- Typographie : Space Grotesk (titres) · Inter (UI) · JetBrains Mono (détails)
+Les contributions sont bienvenues. Lisez d'abord [CONTRIBUTING.md](CONTRIBUTING.md) : une issue par changement, Conventional Commits, CI verte.
 
 ## Licence
 
-[MIT](LICENSE) © 2026
+Publié sous [licence MIT](LICENSE).
+
+---
+
+<p align="center">
+  <a href="https://github.com/Devitek">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/devitek-wordmark-blanc.svg">
+      <img src=".github/assets/devitek-wordmark-encre.svg" alt="Devitek" height="22">
+    </picture>
+  </a>
+  <br>
+  <sub>Built and maintained by <a href="https://github.com/Devitek">Devitek</a></sub>
+</p>
