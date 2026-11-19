@@ -50,7 +50,7 @@ prefer a clear onboarding / in-app hint when one is required.
 | Microphone | macOS | `NSMicrophoneUsageDescription` in `src-tauri/Info.plist` |
 | Microphone | Windows | system privacy setting (documented) |
 | Accessibility (type-at-cursor) | macOS | user-granted in System Settings (documented) |
-| type-at-cursor backend | Linux | `wtype` (Wayland) / `xdotool` (X11) |
+| type-at-cursor backend | Linux | `wtype` types (Wayland) / clipboard + `xdotool` paste `Ctrl+V` (`Ctrl+Shift+V` in terminals) on X11 — `xdotool type` corrupts CJK & out-of-layout characters |
 | system tray | Linux (Nix) | `libayatana-appindicator` on wrapper `LD_LIBRARY_PATH` |
 | EGL `EGL_BAD_PARAMETER` crash | Linux | `WEBKIT_DISABLE_DMABUF_RENDERER=1` set in `src-tauri/src/main.rs` |
 | Wayland fractional-scale | Linux | force `GDK_BACKEND=x11` in `main.rs` |
