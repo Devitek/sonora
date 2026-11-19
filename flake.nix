@@ -98,7 +98,7 @@
         };
 
         bunDepsHash = {
-          x86_64-linux = "sha256-lkmKsbWUlTr4EycT3b07ye6lJ8pnMknO9PL293Tkd38=";
+          x86_64-linux = "sha256-/OeHsfajV+SvU56FY7PleLlSSknHiZDtOhEsKFNijpw=";
         }.${system} or lib.fakeHash;
 
         bunDeps = pkgs.stdenvNoCC.mkDerivation {
@@ -124,6 +124,12 @@
             cp -r node_modules "$out"
             runHook postInstall
           '';
+          # The default fixupPhase runs patchELF/strip on node_modules' prebuilt
+          # binaries, which is non-deterministic across nixpkgs bumps and so
+          # drifts this fixed-output hash (it broke after the nixpkgs update in
+          # #44). Keep the FOD = the raw `bun install` output; the `frontend`
+          # build below fixes up what it needs when it runs vite.
+          dontFixup = true;
           outputHashMode = "recursive";
           outputHashAlgo = "sha256";
           outputHash = bunDepsHash;
