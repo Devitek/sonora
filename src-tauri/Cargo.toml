@@ -28,7 +28,11 @@ tokio-tungstenite = { version = "0.30.0", features = ["native-tls"] }
 futures-util = "0.3.32"
 base64 = "0.23.0"
 dotenvy = "0.15"
-reqwest = { version = "0.13", features = ["multipart", "json"] }
+# TLS via native-tls (system OpenSSL), matching tokio-tungstenite above and the
+# flake's OPENSSL_NO_VENDOR setup. reqwest 0.13's default-tls pulls rustls +
+# aws-lc-rs (a second TLS stack + a C AWS-LC build); opting out keeps a single
+# TLS backend and avoids the rustls/aws-lc advisory + Nix-packaging churn.
+reqwest = { version = "0.13", default-features = false, features = ["multipart", "json", "charset", "http2", "system-proxy", "native-tls"] }
 whisper-rs = "0.16.0"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
