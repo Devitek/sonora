@@ -7,8 +7,9 @@
 //! Two provider shapes:
 //!  - **streaming** (Gemini Live): consumes the continuous `Audio` stream and
 //!    does its own endpointing.
-//!  - **chunked** (OpenAI/Groq/OpenAI-compatible Whisper): consumes complete
-//!    VAD `Segment`s and POSTs each to `/audio/transcriptions`.
+//!  - **chunked** (OpenAI/Groq/OpenAI-compatible Whisper, MiniMax ASR): consumes
+//!    complete VAD `Segment`s and POSTs each to `/audio/transcriptions`
+//!    (MiniMax: `/speech_to_text`).
 
 pub mod gemini;
 pub mod openai_compat;
@@ -46,7 +47,7 @@ pub struct ProviderConfig {
 impl ProviderConfig {
     /// Resolve the active config: stored settings + keyring API key take
     /// precedence, falling back to environment variables (.env) per field.
-    /// Supported providers: gemini | openai | groq | openai-compatible | whisper-local
+    /// Supported providers: gemini | openai | groq | mistral | minimax | openai-compatible | whisper-local
     pub fn resolve(config_dir: &Path) -> Result<Self, String> {
         let s = settings::load(config_dir);
 
@@ -93,6 +94,13 @@ impl ProviderConfig {
                 model: model_override.unwrap_or_else(|| "voxtral-mini-latest".into()),
                 api_key: key_or(&["MISTRAL_API_KEY", "TRANSCRIPT_API_KEY"]).ok_or(no_key)?,
                 base_url: Some(base_override.unwrap_or_else(|| "https://api.mistral.ai/v1".into())),
+                language,
+                kind,
+            },
+            "minimax" => Self {
+                model: model_override.unwrap_or_else(|| "asr-1.0".into()),
+                api_key: key_or(&["MINIMAX_API_KEY", "TRANSCRIPT_API_KEY"]).ok_or(no_key)?,
+                base_url: Some(base_override.unwrap_or_else(|| "https://api.minimax.io/v1".into())),
                 language,
                 kind,
             },
@@ -167,7 +175,7 @@ impl SessionController {
             "gemini" => {
                 tauri::async_runtime::spawn(gemini::run_session(app, cfg, rx));
             }
-            "openai" | "groq" | "openai-compatible" | "mistral" => {
+            "openai" | "groq" | "openai-compatible" | "mistral" | "minimax" => {
                 tauri::async_runtime::spawn(openai_compat::run_session(app, cfg, rx));
             }
             "whisper-local" => {

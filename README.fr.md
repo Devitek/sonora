@@ -47,6 +47,7 @@ Ouvrez les **Réglages** (⚙ sur la barre), choisissez un fournisseur de transc
 | **Mistral (Voxtral)** | par segment | ✓ | oui | — |
 | **OpenAI Whisper** | par segment | ✓ | oui | — |
 | **Groq Whisper** | par segment | ✓ | oui | — |
+| **MiniMax ASR** | par segment | ✓ | oui | — |
 | **Compatible OpenAI** | par segment | ✓ | selon l'hôte | possible |
 | **Whisper local** (ggml) | par segment | — | non | ✓ |
 

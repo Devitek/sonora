@@ -47,6 +47,7 @@ Open the **Settings** (⚙ on the bar), choose a transcription provider and past
 | **Mistral (Voxtral)** | per segment | ✓ | yes | — |
 | **OpenAI Whisper** | per segment | ✓ | yes | — |
 | **Groq Whisper** | per segment | ✓ | yes | — |
+| **MiniMax ASR** | per segment | ✓ | yes | — |
 | **OpenAI-compatible** | per segment | ✓ | host-dependent | possible |
 | **Local Whisper** (ggml) | per segment | — | no | ✓ |
 

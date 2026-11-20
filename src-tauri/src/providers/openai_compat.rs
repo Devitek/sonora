@@ -1,8 +1,10 @@
 //! Chunked transcription against an OpenAI-compatible REST endpoint.
 //!
-//! Covers OpenAI Whisper, Groq, and any `/audio/transcriptions`-compatible
-//! server. Driven by VAD: each complete speech [`AudioMsg::Segment`] is encoded
-//! as a 16 kHz mono WAV and POSTed; the returned text is emitted as a `final`.
+//! Covers OpenAI Whisper, Groq, any `/audio/transcriptions`-compatible server,
+//! and MiniMax ASR (`/speech_to_text`, same multipart shape and `text`
+//! response). Driven by VAD: each complete speech [`AudioMsg::Segment`] is
+//! encoded as a 16 kHz mono WAV and POSTed; the returned text is emitted as a
+//! `final`.
 
 use tauri::AppHandle;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -67,7 +69,15 @@ async fn transcribe(
         .as_deref()
         .unwrap_or_default()
         .trim_end_matches('/');
-    let url = format!("{base}/audio/transcriptions");
+    // MiniMax uses a different path and takes the language as a header, not a
+    // form field; an absent header means mixed-language recognition.
+    // https://platform.minimax.io/docs/api-reference/speech-to-text
+    let minimax = cfg.kind == "minimax";
+    let url = if minimax {
+        format!("{base}/speech_to_text")
+    } else {
+        format!("{base}/audio/transcriptions")
+    };
 
     let part = reqwest::multipart::Part::bytes(wav)
         .file_name("audio.wav")
@@ -78,11 +88,15 @@ async fn transcribe(
     let mut form = reqwest::multipart::Form::new()
         .text("model", cfg.model.clone())
         .part("file", part);
+    let mut req = client.post(&url);
     if let Some(lang) = &cfg.language {
-        form = form.text("language", lang.clone());
+        if minimax {
+            req = req.header("language", lang.as_str());
+        } else {
+            form = form.text("language", lang.clone());
+        }
     }
-
-    let mut req = client.post(&url).multipart(form);
+    req = req.multipart(form);
     if !cfg.api_key.is_empty() {
         req = req.bearer_auth(&cfg.api_key);
     }
