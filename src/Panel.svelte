@@ -5,6 +5,7 @@
   import History from "./History.svelte";
   import SettingsForm from "./SettingsForm.svelte";
   import { getTheme, type ThemePref } from "./lib/settings";
+  import { t } from "./lib/i18n";
 
   type Tab = "history" | "settings";
 
@@ -27,14 +28,12 @@
 
   // Keep the OS window title in sync with the active tab so it never collides
   // with the bar's "Sonora" title (Hyprland/wm rules target the exact bar title).
-  const TITLES: Record<Tab, string> = {
-    history: "Sonora — Historique",
-    settings: "Sonora — Réglages",
-  };
   $effect(() => {
     if (!isTauri) return;
+    const title =
+      tab === "settings" ? t("panel.title.settings") : t("panel.title.history");
     try {
-      void getCurrentWindow().setTitle(TITLES[tab]);
+      void getCurrentWindow().setTitle(title);
     } catch {
       /* set-title best effort */
     }
@@ -86,7 +85,7 @@
         aria-selected={tab === "history"}
         onclick={() => (tab = "history")}
       >
-        Historique
+        {t("nav.history")}
       </button>
       <button
         class="tab"
@@ -95,10 +94,10 @@
         aria-selected={tab === "settings"}
         onclick={() => (tab = "settings")}
       >
-        Réglages
+        {t("nav.settings")}
       </button>
     </div>
-    <button class="p-close" onclick={closeWindow} title="Fermer" aria-label="Fermer">✕</button>
+    <button class="p-close" onclick={closeWindow} title={t("common.close")} aria-label={t("common.close")}>✕</button>
   </header>
 
   <div class="p-body">
