@@ -50,7 +50,7 @@ async fn complete(config_dir: &Path, system: &str, text: &str) -> Result<String,
                 .ok_or("Clé Gemini absente (⚙ → moteur de reformulation).")?;
             gemini_generate(&client, &model, &key, system, text).await?
         }
-        "openai-compatible" | "openai" | "groq" | "mistral" => {
+        "openai-compatible" | "openai" | "groq" | "mistral" | "minimax" => {
             let base = nonempty(s.cleanup_base_url)
                 .or_else(|| default_base(&provider))
                 .ok_or("Définis l'URL de base du moteur de reformulation (⚙).")?;
@@ -66,7 +66,16 @@ async fn complete(config_dir: &Path, system: &str, text: &str) -> Result<String,
             let key = secrets::get_api_key(config_dir, "cleanup")
                 .or_else(|| first_env(&env_keys))
                 .unwrap_or_default();
-            openai_chat(&client, &base, &model, &key, system, text).await?
+            openai_chat(
+                &client,
+                &base,
+                &model,
+                &key,
+                &extra_body(&provider),
+                system,
+                text,
+            )
+            .await?
         }
         other => return Err(format!("Moteur de reformulation inconnu: '{other}'")),
     };
@@ -126,11 +135,12 @@ async fn openai_chat(
     base: &str,
     model: &str,
     key: &str,
+    extra: &Value,
     system: &str,
     text: &str,
 ) -> Result<String, String> {
     let url = format!("{}/chat/completions", base.trim_end_matches('/'));
-    let body = json!({
+    let mut body = json!({
         "model": model,
         "temperature": 0.2,
         "messages": [
@@ -138,6 +148,10 @@ async fn openai_chat(
             { "role": "user", "content": text }
         ]
     });
+    // Merge vendor-specific request fields (e.g. MiniMax's thinking toggle).
+    if let (Some(body), Some(extra)) = (body.as_object_mut(), extra.as_object()) {
+        body.extend(extra.clone());
+    }
 
     let mut req = client.post(&url).json(&body);
     if !key.is_empty() {
@@ -157,11 +171,11 @@ async fn openai_chat(
         return Err(format!("HTTP {}: {msg}", status.as_u16()));
     }
 
-    let out = v
+    let content = v
         .pointer("/choices/0/message/content")
         .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_string();
+        .unwrap_or_default();
+    let out = strip_think(content).trim().to_string();
     if out.is_empty() {
         return Err("Réponse vide".into());
     }
@@ -173,6 +187,7 @@ fn default_base(provider: &str) -> Option<String> {
         "openai" => Some("https://api.openai.com/v1".into()),
         "groq" => Some("https://api.groq.com/openai/v1".into()),
         "mistral" => Some("https://api.mistral.ai/v1".into()),
+        "minimax" => Some("https://api.minimax.io/v1".into()),
         _ => None,
     }
 }
@@ -182,6 +197,7 @@ fn default_model(provider: &str) -> Option<String> {
         "openai" => Some("gpt-4o-mini".into()),
         "groq" => Some("llama-3.3-70b-versatile".into()),
         "mistral" => Some("mistral-small-latest".into()),
+        "minimax" => Some("MiniMax-M3".into()),
         _ => None, // generic openai-compatible: the user must pick a model
     }
 }
@@ -193,8 +209,29 @@ fn vendor_env(provider: &str) -> Option<&'static str> {
         "openai" => Some("OPENAI_API_KEY"),
         "groq" => Some("GROQ_API_KEY"),
         "mistral" => Some("MISTRAL_API_KEY"),
+        "minimax" => Some("MINIMAX_API_KEY"),
         _ => None,
     }
+}
+
+/// Vendor-specific fields merged into the chat/completions request body.
+fn extra_body(provider: &str) -> Value {
+    match provider {
+        // MiniMax-M3 answers directly when thinking is disabled (low latency);
+        // `reasoning_split` keeps any reasoning out of the `content` field.
+        // https://platform.minimax.io/docs/api-reference/text-openai-api
+        "minimax" => json!({ "thinking": { "type": "disabled" }, "reasoning_split": true }),
+        _ => json!({}),
+    }
+}
+
+/// Drop a leading `<think>…</think>` block that some reasoning models inline in
+/// `content`, so their chain of thought never reaches the cursor.
+fn strip_think(s: &str) -> &str {
+    s.trim_start()
+        .strip_prefix("<think>")
+        .and_then(|rest| rest.split_once("</think>"))
+        .map_or(s, |(_, answer)| answer)
 }
 
 fn nonempty(v: Option<String>) -> Option<String> {
@@ -204,4 +241,37 @@ fn nonempty(v: Option<String>) -> Option<String> {
 fn first_env(keys: &[&str]) -> Option<String> {
     keys.iter()
         .find_map(|k| std::env::var(k).ok().filter(|s| !s.is_empty()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn strip_think_removes_leading_reasoning() {
+        assert_eq!(
+            strip_think("<think>plan…</think>\nanswer.").trim(),
+            "answer."
+        );
+        assert_eq!(strip_think("  <think>x</think>ok"), "ok");
+    }
+
+    #[test]
+    fn strip_think_keeps_plain_or_unclosed_text() {
+        assert_eq!(strip_think("plain text"), "plain text");
+        assert_eq!(strip_think("<think>never closed"), "<think>never closed");
+        assert_eq!(strip_think("a <think>b</think>"), "a <think>b</think>");
+    }
+
+    #[test]
+    fn minimax_preset_defaults() {
+        assert_eq!(
+            default_base("minimax").as_deref(),
+            Some("https://api.minimax.io/v1")
+        );
+        assert_eq!(default_model("minimax").as_deref(), Some("MiniMax-M3"));
+        assert_eq!(vendor_env("minimax"), Some("MINIMAX_API_KEY"));
+        assert_eq!(extra_body("minimax")["thinking"]["type"], "disabled");
+        assert_eq!(extra_body("openai"), json!({}));
+    }
 }
