@@ -17,6 +17,7 @@
     KEYED_PROVIDERS,
   } from "./lib/providers";
   import type { Settings } from "./lib/types";
+  import { t } from "./lib/i18n";
 
   // The parent panel owns the window chrome; it passes a close callback.
   let { onClose }: { onClose?: () => void } = $props();
@@ -40,15 +41,17 @@
   // entry when the saved device is currently unavailable (e.g. unplugged USB).
   const micOptions = $derived.by(() => {
     const opts = [
-      { id: "", label: "Système (par défaut)" },
+      { id: "", label: t("settings.mic.systemDefault") },
       ...audioInputs.map((d) => ({
         id: d.id,
-        label: d.is_default ? `${d.name} — défaut` : d.name,
+        label: d.is_default
+          ? t("settings.mic.deviceDefaultSuffix", { name: d.name })
+          : d.name,
       })),
     ];
     const sel = settings.input_device;
     if (sel && !audioInputs.some((d) => d.id === sel)) {
-      opts.push({ id: sel, label: "Micro sélectionné (indisponible)" });
+      opts.push({ id: sel, label: t("settings.mic.selectedUnavailable") });
     }
     return opts;
   });
@@ -97,7 +100,7 @@
       cleanupKey = "";
       await refreshHasCleanupKey();
     }
-    settingsMsg = "Enregistré ✓";
+    settingsMsg = t("settings.saved");
     setTimeout(() => (settingsMsg = ""), 1500);
     broadcast();
   }
@@ -172,40 +175,40 @@
     <div class="quick">
       <button class="quick-card" class:on={autoType} onclick={toggleAutoType}>
         <span class="q-ico">⌨</span>
-        <span class="q-name">Coller au curseur</span>
-        <span class="q-state">{autoType ? "activé" : "désactivé"}</span>
+        <span class="q-name">{t("settings.quick.autotype")}</span>
+        <span class="q-state">{autoType ? t("settings.state.on") : t("settings.state.off")}</span>
       </button>
       <button class="quick-card" class:on={settings.cleanup_enabled === true} onclick={toggleCleanup}>
         <span class="q-ico">✦</span>
-        <span class="q-name">Nettoyage auto</span>
-        <span class="q-state">{settings.cleanup_enabled ? "activé" : "désactivé"}</span>
+        <span class="q-name">{t("settings.quick.cleanup")}</span>
+        <span class="q-state">{settings.cleanup_enabled ? t("settings.state.on") : t("settings.state.off")}</span>
       </button>
     </div>
 
     <!-- Thème -->
     <div class="field">
-      <span>Thème</span>
+      <span>{t("settings.theme.label")}</span>
       <div class="seg">
-        <button class="seg-btn" class:active={theme === "system"} onclick={() => chooseTheme("system")}>Système</button>
-        <button class="seg-btn" class:active={theme === "light"} onclick={() => chooseTheme("light")}>Clair</button>
-        <button class="seg-btn" class:active={theme === "dark"} onclick={() => chooseTheme("dark")}>Sombre</button>
+        <button class="seg-btn" class:active={theme === "system"} onclick={() => chooseTheme("system")}>{t("settings.theme.system")}</button>
+        <button class="seg-btn" class:active={theme === "light"} onclick={() => chooseTheme("light")}>{t("settings.theme.light")}</button>
+        <button class="seg-btn" class:active={theme === "dark"} onclick={() => chooseTheme("dark")}>{t("settings.theme.dark")}</button>
       </div>
     </div>
 
     <!-- Microphone (source de capture) -->
     <div class="field">
-      <span>Microphone</span>
+      <span>{t("settings.mic.label")}</span>
       <div class="mic-row">
         <div class="mic-select">
           <Select bind:value={settings.input_device} options={micOptions} />
         </div>
-        <button class="mic-refresh" title="Rafraîchir la liste" aria-label="Rafraîchir les micros" onclick={loadAudioInputs}>↻</button>
+        <button class="mic-refresh" title={t("settings.mic.refreshTitle")} aria-label={t("settings.mic.refreshAria")} onclick={loadAudioInputs}>↻</button>
       </div>
-      <span class="mic-hint">Choisissez la source audio utilisée pour la dictée. « Système » suit le micro par défaut de l'OS.</span>
+      <span class="mic-hint">{t("settings.mic.hint")}</span>
     </div>
 
     <div class="field">
-      <span>Fournisseur</span>
+      <span>{t("settings.provider.label")}</span>
       <Select
         bind:value={settings.provider}
         options={PROVIDERS}
@@ -218,111 +221,108 @@
 
     {#if needsKey}
       <label class="field">
-        <span>Clé API {hasKey ? "· enregistrée ✓" : ""}</span>
+        <span>{t("settings.apiKey.label")} {hasKey ? t("settings.apiKey.savedSuffix") : ""}</span>
         <input
           type="password"
           bind:value={apiKey}
-          placeholder={hasKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
+          placeholder={hasKey ? t("settings.apiKey.placeholderKeep") : t("settings.apiKey.placeholderPaste")}
         />
       </label>
       {#if provider === "gemini" && apiKey.startsWith("AQ.")}
-        <p class="warn">
-          ⚠ Ceci ressemble à un jeton temporaire (Live) qui expire vite. Utilise une clé
-          API AI Studio (commence par « AIza ») : aistudio.google.com/apikey
-        </p>
+        <p class="warn">{t("settings.apiKey.geminiWarn")}</p>
       {/if}
       {#if hasKey}
-        <button class="link" onclick={clearKey}>Supprimer la clé enregistrée</button>
+        <button class="link" onclick={clearKey}>{t("settings.apiKey.clear")}</button>
       {/if}
     {/if}
 
     <label class="field">
-      <span>Modèle (optionnel)</span>
-      <input type="text" bind:value={settings.model} placeholder={MODEL_PLACEHOLDER[provider] || "défaut"} />
+      <span>{t("settings.model.label")}</span>
+      <input type="text" bind:value={settings.model} placeholder={MODEL_PLACEHOLDER[provider] || t("settings.placeholder.default")} />
     </label>
 
     {#if provider === "openai-compatible"}
       <label class="field">
-        <span>URL de base</span>
+        <span>{t("settings.baseUrl.label")}</span>
         <input type="text" bind:value={settings.base_url} placeholder="http://localhost:8000/v1" />
       </label>
     {/if}
 
     {#if provider === "whisper-local"}
       <label class="field">
-        <span>Chemin du modèle ggml</span>
-        <input type="text" bind:value={settings.whisper_model} placeholder="/chemin/ggml-base.bin" />
+        <span>{t("settings.whisper.label")}</span>
+        <input type="text" bind:value={settings.whisper_model} placeholder={t("settings.whisper.placeholder")} />
       </label>
     {/if}
 
     <label class="field">
-      <span>Langue (optionnel)</span>
-      <input type="text" bind:value={settings.language} placeholder="fr · vide = auto" />
+      <span>{t("settings.language.label")}</span>
+      <input type="text" bind:value={settings.language} placeholder={t("settings.language.placeholder")} />
     </label>
 
-    <div class="section-sep">Nettoyage des hésitations</div>
+    <div class="section-sep">{t("settings.cleanup.section")}</div>
 
     <label class="field check">
       <input type="checkbox" bind:checked={settings.cleanup_enabled} />
-      <span>Nettoyer automatiquement (retirer « euh », faux départs…)</span>
+      <span>{t("settings.cleanup.autoLabel")}</span>
     </label>
 
     {#if settings.cleanup_enabled}
       <div class="field">
-        <span>Moteur de nettoyage</span>
+        <span>{t("settings.cleanup.engineLabel")}</span>
         <Select bind:value={settings.cleanup_provider} options={CLEANUP_ENGINES} />
       </div>
       <label class="field">
-        <span>Modèle de nettoyage</span>
+        <span>{t("settings.cleanup.modelLabel")}</span>
         <input
           type="text"
           bind:value={settings.cleanup_model}
-          placeholder={CLEANUP_MODEL_PLACEHOLDER[cleanupProvider] ?? "défaut"}
+          placeholder={CLEANUP_MODEL_PLACEHOLDER[cleanupProvider] ?? t("settings.placeholder.default")}
         />
       </label>
       {#if cleanupProvider === "gemini"}
-        <p class="hint">Utilise la clé Gemini configurée plus haut.</p>
+        <p class="hint">{t("settings.cleanup.geminiHint")}</p>
       {:else}
         {#if cleanupProvider === "openai-compatible"}
           <label class="field">
-            <span>URL de base</span>
+            <span>{t("settings.baseUrl.label")}</span>
             <input type="text" bind:value={settings.cleanup_base_url} placeholder="http://localhost:8000/v1" />
           </label>
         {/if}
         <label class="field">
-          <span>Clé API nettoyage {hasCleanupKey ? "· enregistrée ✓" : ""}</span>
+          <span>{t("settings.cleanup.apiKeyLabel")} {hasCleanupKey ? t("settings.apiKey.savedSuffix") : ""}</span>
           <input
             type="password"
             bind:value={cleanupKey}
-            placeholder={hasCleanupKey ? "•••• (laisser vide pour garder)" : "Coller la clé"}
+            placeholder={hasCleanupKey ? t("settings.apiKey.placeholderKeep") : t("settings.apiKey.placeholderPaste")}
           />
         </label>
       {/if}
     {/if}
 
-    <div class="section-sep">Prompts de reformulation</div>
-    <p class="hint">Appliquez-les à une dictée via le bouton ✦. Ils utilisent le moteur configuré ci-dessus.</p>
+    <div class="section-sep">{t("settings.prompts.section")}</div>
+    <p class="hint">{t("settings.prompts.hint")}</p>
     {#each settings.prompts ?? [] as p (p.id)}
       <div class="prompt-row">
         <div class="prompt-head">
-          <input class="prompt-name" type="text" bind:value={p.name} placeholder="Nom (ex. Formel, Commande terminal…)" />
-          <button class="prompt-del" title="Supprimer" onclick={() => removePrompt(p.id)}>✕</button>
+          <input class="prompt-name" type="text" bind:value={p.name} placeholder={t("settings.prompts.namePlaceholder")} />
+          <button class="prompt-del" title={t("settings.prompts.deleteTitle")} onclick={() => removePrompt(p.id)}>✕</button>
         </div>
         <textarea
           class="prompt-text"
           rows="2"
           bind:value={p.prompt}
-          placeholder="Instruction, ex. « Réécris ce texte de manière formelle et professionnelle. »"
+          placeholder={t("settings.prompts.textPlaceholder")}
         ></textarea>
       </div>
     {/each}
-    <button class="add-prompt" onclick={addPrompt}>+ Ajouter un prompt</button>
+    <button class="add-prompt" onclick={addPrompt}>{t("settings.prompts.add")}</button>
   </div>
 
   <footer class="s-actions">
     {#if settingsMsg}<span class="ok-msg">{settingsMsg}</span>{/if}
-    <button class="cancel-btn" onclick={() => onClose?.()}>Fermer</button>
-    <button class="save-btn" onclick={saveSettings}>Enregistrer</button>
+    <button class="cancel-btn" onclick={() => onClose?.()}>{t("common.close")}</button>
+    <button class="save-btn" onclick={saveSettings}>{t("common.save")}</button>
   </footer>
 </div>
 
