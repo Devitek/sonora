@@ -57,10 +57,14 @@ async fn complete(config_dir: &Path, system: &str, text: &str) -> Result<String,
             let model = nonempty(s.cleanup_model)
                 .or_else(|| default_model(&provider))
                 .ok_or("Définis le modèle du moteur de reformulation (⚙).")?;
+            // Keyring "cleanup" entry first, then env: the generic CLEANUP_API_KEY,
+            // then this engine's OWN vendor variable (never another vendor's — a
+            // Mistral key must not be sent to Groq/OpenAI), then TRANSCRIPT_API_KEY.
+            let mut env_keys = vec!["CLEANUP_API_KEY"];
+            env_keys.extend(vendor_env(&provider));
+            env_keys.push("TRANSCRIPT_API_KEY");
             let key = secrets::get_api_key(config_dir, "cleanup")
-                .or_else(|| {
-                    first_env(&["CLEANUP_API_KEY", "MISTRAL_API_KEY", "TRANSCRIPT_API_KEY"])
-                })
+                .or_else(|| first_env(&env_keys))
                 .unwrap_or_default();
             openai_chat(&client, &base, &model, &key, system, text).await?
         }
@@ -179,6 +183,17 @@ fn default_model(provider: &str) -> Option<String> {
         "groq" => Some("llama-3.3-70b-versatile".into()),
         "mistral" => Some("mistral-small-latest".into()),
         _ => None, // generic openai-compatible: the user must pick a model
+    }
+}
+
+/// The engine's own vendor API-key variable, used only as a fallback for that
+/// engine. Generic `openai-compatible` has none (it points at an arbitrary host).
+fn vendor_env(provider: &str) -> Option<&'static str> {
+    match provider {
+        "openai" => Some("OPENAI_API_KEY"),
+        "groq" => Some("GROQ_API_KEY"),
+        "mistral" => Some("MISTRAL_API_KEY"),
+        _ => None,
     }
 }
 
