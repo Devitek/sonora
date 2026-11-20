@@ -102,8 +102,10 @@ const FRAME_SIZE: usize = (TARGET_RATE as usize / 1000) * 20;
 /// Speech must exceed `noise_floor * SPEECH_FACTOR` (and an absolute floor).
 const SPEECH_FACTOR: f32 = 3.0;
 const ABS_THRESHOLD: f32 = 0.012;
-/// Keep "in speech" for this long after energy drops, to bridge short pauses.
-const HANGOVER: u32 = 12; // 12 * 20 ms = 240 ms
+/// Keep "in speech" for this long after energy drops, to bridge pauses. Chunked
+/// providers transcribe each segment as a full utterance (closing it with a
+/// period), so this must outlast a slow speaker's mid-sentence pauses.
+const HANGOVER: u32 = 35; // 35 * 20 ms = 700 ms
 
 enum Msg {
     Config { in_rate: u32 },

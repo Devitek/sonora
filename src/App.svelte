@@ -7,6 +7,7 @@
     availableMonitors,
   } from "@tauri-apps/api/window";
   import { copyText } from "./lib/clipboard";
+  import { joinSegments, segmentGap } from "./lib/text";
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
   import {
     getAutoType,
@@ -62,8 +63,8 @@
   const cleanupEnabled = $derived(settings.cleanup_enabled === true);
 
   const listening = $derived(recState === "listening" || recState === "starting");
-  const finalsText = $derived(finals.join(" ").trim());
-  const fullText = $derived([...finals, partial].filter(Boolean).join(" ").trim());
+  const finalsText = $derived(joinSegments(finals));
+  const fullText = $derived(joinSegments([...finals, partial]));
   const hasText = $derived(fullText.length > 0);
 
   // Grow/shrink the transparent window to fit the bar + capsule + menu, so there
@@ -252,7 +253,7 @@
               // transport: auto-copying the running transcript here would race
               // the pending paste. finalizeSession puts the full text back once
               // we're idle.
-              void invoke("type_text", { text: t + " " }).catch(
+              void invoke("type_text", { text: t + segmentGap(t) }).catch(
                 (e) => (errorMsg = String(e)),
               );
             } else {
@@ -404,7 +405,7 @@
     if (cleanupEnabled) {
       text = await runCleanup(text);
       if (autoType) {
-        await invoke("type_text", { text: text + " " }).catch(
+        await invoke("type_text", { text: text + segmentGap(text) }).catch(
           (e) => (errorMsg = String(e)),
         );
       }
