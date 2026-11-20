@@ -4,6 +4,7 @@
   import { copyText } from "./lib/clipboard";
   import { loadHistory, saveHistory } from "./lib/history";
   import type { HistoryEntry } from "./lib/types";
+  import { t } from "./lib/i18n";
 
   let history = $state<HistoryEntry[]>([]);
   let copied = $state("");
@@ -61,23 +62,27 @@
 
 <div class="hist-root">
   {#if history.length === 0}
-    <p class="placeholder">Aucune dictée enregistrée pour l'instant.<br />Vos dictées apparaîtront ici.</p>
+    <p class="placeholder">{t("history.empty.line1")}<br />{t("history.empty.line2")}</p>
   {:else}
     <div class="hist-head">
-      <span>{history.length} entrée{history.length > 1 ? "s" : ""}</span>
-      <button class="link" onclick={clearHistory}>Tout effacer</button>
+      <span>
+        {history.length > 1
+          ? t("history.count.other", { n: history.length })
+          : t("history.count.one", { n: history.length })}
+      </span>
+      <button class="link" onclick={clearHistory}>{t("history.clearAll")}</button>
     </div>
     <ul class="hist-list">
       {#each history as entry (entry.id)}
         <li class="hist-item">
-          <button class="entry-text" title="Copier" onclick={() => copyEntry(entry)}>
+          <button class="entry-text" title={t("common.copy")} onclick={() => copyEntry(entry)}>
             <span class="entry-time">
               {fmtTime(entry.createdAt)}
-              {#if copied === entry.id}<span class="entry-copied">copié ✓</span>{/if}
+              {#if copied === entry.id}<span class="entry-copied">{t("history.copied")}</span>{/if}
             </span>
             <span class="entry-body">{entry.text}</span>
           </button>
-          <button class="entry-del" title="Supprimer" onclick={() => deleteEntry(entry.id)}>✕</button>
+          <button class="entry-del" title={t("common.delete")} onclick={() => deleteEntry(entry.id)}>✕</button>
         </li>
       {/each}
     </ul>

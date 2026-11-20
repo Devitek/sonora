@@ -8,6 +8,7 @@
   } from "@tauri-apps/api/window";
   import { copyText } from "./lib/clipboard";
   import { joinSegments, segmentGap } from "./lib/text";
+  import { t } from "./lib/i18n";
   import { loadHistory, saveHistory, newEntry } from "./lib/history";
   import {
     getAutoType,
@@ -46,7 +47,7 @@
   /** true once a usable transcription config resolves (drives onboarding). */
   let configured = $state(true);
   let cleaning = $state(false);
-  let procLabel = $state("Reformulation…");
+  let procLabel = $state(t("bar.proc.reformulation"));
   let promptMenuOpen = $state(false);
   const prompts = $derived(settings.prompts ?? []);
 
@@ -347,7 +348,7 @@
    *  to persist (the cleaned version, or the original on failure). */
   async function runCleanup(text: string): Promise<string> {
     cleaning = true;
-    procLabel = "Nettoyage…";
+    procLabel = t("bar.proc.cleanup");
     try {
       const cleaned = (await invoke<string>("cleanup_text", { text }))?.trim();
       if (cleaned) {
@@ -357,7 +358,7 @@
         return cleaned;
       }
     } catch (e) {
-      errorMsg = "Nettoyage : " + String(e);
+      errorMsg = t("errors.cleanup", { e: String(e) });
     } finally {
       cleaning = false;
     }
@@ -373,7 +374,7 @@
   /** Apply a user-defined reformulation prompt to the current transcript. */
   async function runTransform(promptText: string, text: string): Promise<string> {
     cleaning = true;
-    procLabel = "Reformulation…";
+    procLabel = t("bar.proc.reformulation");
     try {
       const out = (
         await invoke<string>("transform_text", { text, prompt: promptText })
@@ -385,7 +386,7 @@
         return out;
       }
     } catch (e) {
-      errorMsg = "Reformulation : " + String(e);
+      errorMsg = t("errors.reformulation", { e: String(e) });
     } finally {
       cleaning = false;
     }
@@ -550,9 +551,9 @@
       class="bar"
       role="toolbar"
       tabindex="-1"
-      aria-label="Barre Sonora — glissez pour déplacer"
+      aria-label={t("bar.aria.drag")}
       onpointerdown={onBarPointerDown}
-      title="Glissez pour déplacer · ⌘/Alt + glisser depuis n'importe où"
+      title={t("bar.title.drag")}
     >
       <span class="grip" aria-hidden="true">
         <svg width="10" height="18" viewBox="0 0 10 18" fill="currentColor">
@@ -565,9 +566,9 @@
       <button
         class="rec"
         class:on={listening}
-        title={listening ? "Arrêter" : "Dicter"}
+        title={listening ? t("bar.rec.stop") : t("bar.rec.start")}
         onclick={toggle}
-        aria-label={listening ? "Arrêter" : "Démarrer la dictée"}
+        aria-label={listening ? t("bar.rec.stop") : t("bar.rec.startAria")}
       >
         {#if listening}
           <span class="stop"></span>
@@ -590,9 +591,9 @@
             {#each finals as f}<span class="final">{f} </span>{/each}<span class="partial">{partial}</span>
           </p>
         {:else if !configured}
-          <span class="ph">Ajoutez une clé API pour démarrer</span>
+          <span class="ph">{t("bar.placeholder.noKey")}</span>
         {:else}
-          <span class="ph">{listening ? "À l'écoute…" : "Dictez ou cliquez le micro"}</span>
+          <span class="ph">{listening ? t("bar.placeholder.listening") : t("bar.placeholder.idle")}</span>
         {/if}
       </div>
 
@@ -604,20 +605,20 @@
           class:active={promptMenuOpen}
           onclick={() => (promptMenuOpen = !promptMenuOpen)}
           disabled={cleaning}
-          title="Reformuler / nettoyer">✦</button
+          title={t("bar.action.reformulate")}>✦</button
         >
-        <button class="icon-btn" class:ok={copied} onclick={copyCurrent} title="Copier">
+        <button class="icon-btn" class:ok={copied} onclick={copyCurrent} title={t("common.copy")}>
           {#if copied}✓{:else}⧉{/if}
         </button>
-        <button class="icon-btn" onclick={clearAll} title="Effacer">⌫</button>
+        <button class="icon-btn" onclick={clearAll} title={t("bar.action.clear")}>⌫</button>
       {/if}
 
-      <button class="icon-btn" onclick={openHistory} title="Historique" aria-label="Historique">
+      <button class="icon-btn" onclick={openHistory} title={t("nav.history")} aria-label={t("nav.history")}>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 4v4h4" /><path d="M12 8v4l3 2" />
         </svg>
       </button>
-      <button class="icon-btn menu" onclick={openSettings} title="Réglages" aria-label="Réglages">
+      <button class="icon-btn menu" onclick={openSettings} title={t("nav.settings")} aria-label={t("nav.settings")}>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
@@ -637,13 +638,13 @@
       <div class="prompt-menu">
         <button class="pm-item" onclick={cleanupNow} disabled={cleaning}>
           <span class="pm-ico">✦</span>
-          <span>Nettoyer les hésitations</span>
+          <span>{t("bar.menu.cleanup")}</span>
         </button>
         {#each prompts as p (p.id)}
           {#if (p.name ?? "").trim() || (p.prompt ?? "").trim()}
             <button class="pm-item" onclick={() => applyPrompt(p)} disabled={cleaning}>
               <span class="pm-ico">↻</span>
-              <span>{(p.name ?? "").trim() || "Sans nom"}</span>
+              <span>{(p.name ?? "").trim() || t("bar.menu.promptUnnamed")}</span>
             </button>
           {/if}
         {/each}
@@ -652,7 +653,7 @@
           onclick={() => {
             promptMenuOpen = false;
             openSettings();
-          }}>+ Gérer les prompts</button
+          }}>{t("bar.menu.managePrompts")}</button
         >
       </div>
     {/if}
