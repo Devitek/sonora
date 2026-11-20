@@ -51,10 +51,11 @@ fn take_pending_action(state: State<'_, PendingAction>) -> Option<String> {
     state.0.lock().unwrap().take()
 }
 
-/// Type `text` into the currently focused window (dictation-to-cursor).
+/// Send `text` to the currently focused window (dictation-to-cursor). On X11
+/// this pastes via the clipboard, so it needs the AppHandle.
 #[tauri::command]
-fn type_text(text: String) -> Result<(), String> {
-    output::type_text(&text)
+fn type_text(app: AppHandle, text: String) -> Result<(), String> {
+    output::deliver_text(&app, &text)
 }
 
 /// Post-process a transcript through an LLM to strip hesitation/filler markers.

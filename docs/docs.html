@@ -201,7 +201,10 @@
 nix profile install github:Devitek/sonora   # install (menu entry + icon)</code></pre>
           <div class="note">
             To <strong>type text at the cursor</strong> on Linux, Sonora uses <code>wtype</code>
-            (Wayland) or <code>xdotool</code> (X11). Install the one matching your session:
+            (Wayland, which types the text) or <code>xdotool</code> (X11, which pastes it via the
+            clipboard — <kbd>Ctrl</kbd>+<kbd>V</kbd>, or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>
+            in terminals — so CJK and other non-Latin text stays exact). Install the one matching
+            your session:
             <pre><code># Wayland
 sudo apt install wtype
 # X11

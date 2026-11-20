@@ -201,7 +201,10 @@
 nix profile install github:Devitek/sonora   # installe (entrée de menu + icône)</code></pre>
           <div class="note">
             Pour <strong>taper le texte au curseur</strong> sous Linux, Sonora utilise <code>wtype</code>
-            (Wayland) ou <code>xdotool</code> (X11). Installez celui qui correspond à votre session :
+            (Wayland, qui tape le texte) ou <code>xdotool</code> (X11, qui le colle via le
+            presse-papier — <kbd>Ctrl</kbd>+<kbd>V</kbd>, ou <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>V</kbd>
+            dans un terminal — pour que le CJK et les autres textes non latins restent exacts).
+            Installez celui qui correspond à votre session :
             <pre><code># Wayland
 sudo apt install wtype
 # X11
